@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+
+# React Native
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Bundle artifacts
+*.jsbundle
+
+# Ruby / CocoaPods
+/vendor/bundle/
+ios/Pods/
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/app/.cxx/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# iOS
+ios/build/
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+
+# Xcode
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+
+# Temporary files
+*.log
+tmp/
+*.geojson
