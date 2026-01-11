@@ -28,6 +28,22 @@ export function useExportImport() {
   // Convert items to GeoJSON format
   const itemsToGeoJSON = (items: InventoryItem[]): object => {
     const features = items.map(item => {
+      // Merge original properties with our properties
+      const baseProps = {
+        fid: item.id,
+        name: item.name,
+        notes: item.notes,
+        visible: item.visible,
+        created: item.created,
+        mediaCount: item.media?.length || 0,
+        historyCount: item.history?.length || 0,
+      };
+
+      // Include original imported properties, but let our values override
+      const mergedProps = item.properties
+        ? {...item.properties, ...baseProps}
+        : baseProps;
+
       if (item.type === 'point') {
         return {
           type: 'Feature',
@@ -35,15 +51,7 @@ export function useExportImport() {
             type: 'Point',
             coordinates: [item.coordinate.longitude, item.coordinate.latitude],
           },
-          properties: {
-            id: item.id,
-            name: item.name,
-            notes: item.notes,
-            visible: item.visible,
-            created: item.created,
-            mediaCount: item.media?.length || 0,
-            historyCount: item.history?.length || 0,
-          },
+          properties: mergedProps,
         };
       } else {
         // Area - Polygon
@@ -59,14 +67,8 @@ export function useExportImport() {
             coordinates: [coordinates],
           },
           properties: {
-            id: item.id,
-            name: item.name,
-            notes: item.notes,
-            visible: item.visible,
-            created: item.created,
+            ...mergedProps,
             area_sqm: item.area,
-            mediaCount: item.media?.length || 0,
-            historyCount: item.history?.length || 0,
           },
         };
       }
@@ -319,8 +321,13 @@ export function useExportImport() {
     }
   };
 
-  // Import from GeoJSON file
-  const importGeoJSON = async (): Promise<InventoryItem[] | null> => {
+  // Parse GeoJSON file and return data with available properties
+  interface ParsedGeoJSON {
+    features: any[];
+    propertyKeys: string[];
+  }
+
+  const parseGeoJSON = async (): Promise<ParsedGeoJSON | null> => {
     try {
       const result = await pick({
         type: [types.allFiles],
@@ -346,98 +353,126 @@ export function useExportImport() {
         return null;
       }
 
-      const now = new Date().toISOString();
-      const items: InventoryItem[] = [];
-
+      // Collect all unique property keys from all features
+      const propertyKeysSet = new Set<string>();
       for (const feature of geoJson.features) {
-        if (!feature.geometry) {
-          continue;
-        }
-
-        const props = feature.properties || {};
-        const name = props.name || props.Name || props.NAME || '';
-        const notes = props.notes || props.Notes || props.description || props.Description || '';
-
-        if (feature.geometry.type === 'Point') {
-          const [longitude, latitude] = feature.geometry.coordinates;
-          const point: InventoryPoint = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            type: 'point',
-            name,
-            notes,
-            visible: true,
-            created: now,
-            coordinate: {latitude, longitude},
-            history: [],
-            media: [],
-          };
-          items.push(point);
-        } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-          // GeoJSON polygons have coordinates as [[[lng, lat], ...]]
-          // MultiPolygon has coordinates as [[[[lng, lat], ...]]]
-          // We handle both, taking the first polygon from MultiPolygon
-          let ring: number[][];
-          if (feature.geometry.type === 'MultiPolygon') {
-            // MultiPolygon: take first polygon's outer ring
-            ring = feature.geometry.coordinates[0]?.[0];
-          } else {
-            // Polygon: take outer ring
-            ring = feature.geometry.coordinates[0];
-          }
-
-          if (!ring || ring.length < 3) {
-            continue;
-          }
-
-          // Remove the closing point if it's the same as the first
-          let coords = ring.map((coord: number[]) => ({
-            latitude: coord[1],
-            longitude: coord[0],
-          }));
-
-          // Check if last point equals first point and remove it
-          if (coords.length > 1) {
-            const first = coords[0];
-            const last = coords[coords.length - 1];
-            if (first.latitude === last.latitude && first.longitude === last.longitude) {
-              coords = coords.slice(0, -1);
-            }
-          }
-
-          const area: InventoryArea = {
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            type: 'area',
-            name,
-            notes,
-            visible: true,
-            created: now,
-            coordinates: coords,
-            history: [],
-            media: [],
-          };
-          items.push(area);
+        if (feature.properties) {
+          Object.keys(feature.properties).forEach(key => propertyKeysSet.add(key));
         }
       }
 
-      if (items.length === 0) {
-        Alert.alert('Import Error', 'No valid Point or Polygon features found in GeoJSON');
-        return null;
-      }
-
-      return items;
+      return {
+        features: geoJson.features,
+        propertyKeys: Array.from(propertyKeysSet).sort(),
+      };
     } catch (error: any) {
       if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) {
         return null;
       }
-      console.error('GeoJSON import error:', error);
-      Alert.alert('Import Error', 'Failed to import GeoJSON: ' + error.message);
+      console.error('GeoJSON parse error:', error);
+      Alert.alert('Import Error', 'Failed to parse GeoJSON: ' + error.message);
       return null;
     }
+  };
+
+  // Process parsed GeoJSON with property mappings
+  const processGeoJSON = (
+    features: any[],
+    nameProperty: string,
+    notesProperty: string,
+  ): InventoryItem[] | null => {
+    const now = new Date().toISOString();
+    const items: InventoryItem[] = [];
+
+    for (const feature of features) {
+      if (!feature.geometry) {
+        continue;
+      }
+
+      const props = feature.properties || {};
+      const name = nameProperty ? String(props[nameProperty] || '') : '';
+      const notes = notesProperty ? String(props[notesProperty] || '') : '';
+
+      // Use fid as unique id if it exists, otherwise generate one
+      const id = props.fid != null
+        ? String(props.fid)
+        : Date.now().toString() + Math.random().toString(36).substr(2, 9);
+
+      if (feature.geometry.type === 'Point') {
+        const [longitude, latitude] = feature.geometry.coordinates;
+        const point: InventoryPoint = {
+          id,
+          type: 'point',
+          name,
+          notes,
+          visible: true,
+          created: now,
+          coordinate: {latitude, longitude},
+          history: [],
+          media: [],
+          properties: props,
+        };
+        items.push(point);
+      } else if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+        // GeoJSON polygons have coordinates as [[[lng, lat], ...]]
+        // MultiPolygon has coordinates as [[[[lng, lat], ...]]]
+        // We handle both, taking the first polygon from MultiPolygon
+        let ring: number[][];
+        if (feature.geometry.type === 'MultiPolygon') {
+          // MultiPolygon: take first polygon's outer ring
+          ring = feature.geometry.coordinates[0]?.[0];
+        } else {
+          // Polygon: take outer ring
+          ring = feature.geometry.coordinates[0];
+        }
+
+        if (!ring || ring.length < 3) {
+          continue;
+        }
+
+        // Remove the closing point if it's the same as the first
+        let coords = ring.map((coord: number[]) => ({
+          latitude: coord[1],
+          longitude: coord[0],
+        }));
+
+        // Check if last point equals first point and remove it
+        if (coords.length > 1) {
+          const first = coords[0];
+          const last = coords[coords.length - 1];
+          if (first.latitude === last.latitude && first.longitude === last.longitude) {
+            coords = coords.slice(0, -1);
+          }
+        }
+
+        const area: InventoryArea = {
+          id,
+          type: 'area',
+          name,
+          notes,
+          visible: true,
+          created: now,
+          coordinates: coords,
+          history: [],
+          media: [],
+          properties: props,
+        };
+        items.push(area);
+      }
+    }
+
+    if (items.length === 0) {
+      Alert.alert('Import Error', 'No valid Point or Polygon features found in GeoJSON');
+      return null;
+    }
+
+    return items;
   };
 
   return {
     exportData,
     importData,
-    importGeoJSON,
+    parseGeoJSON,
+    processGeoJSON,
   };
 }

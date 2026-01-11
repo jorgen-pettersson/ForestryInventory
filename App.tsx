@@ -11,6 +11,7 @@ import {
   Sidebar,
   InventoryMap,
   AboutModal,
+  PropertyMappingModal,
 } from './src/components';
 import {LocalizationProvider, useLocalization, Language} from './src/localization';
 
@@ -24,7 +25,7 @@ function AppContent() {
   const {region, setRegion, toggleGPSTracking} = useLocation({gpsTracking, setGpsTracking});
   const {language, setLanguage} = useLocalization();
   const {items, addItem, updateItem, deleteItem, toggleItemVisibility, calculateArea, importItems, appendItems} = useInventory();
-  const {exportData, importData, importGeoJSON} = useExportImport();
+  const {exportData, importData, parseGeoJSON, processGeoJSON} = useExportImport();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>('none');
@@ -36,6 +37,11 @@ function AppContent() {
   const [isOnline] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [aboutVisible, setAboutVisible] = useState(false);
+
+  // GeoJSON import state
+  const [propertyMappingVisible, setPropertyMappingVisible] = useState(false);
+  const [geoJsonFeatures, setGeoJsonFeatures] = useState<any[]>([]);
+  const [geoJsonProperties, setGeoJsonProperties] = useState<string[]>([]);
 
   const screenWidth = Dimensions.get('window').width;
 
@@ -221,10 +227,11 @@ function AppContent() {
         {
           text: 'GeoJSON (Add)',
           onPress: async () => {
-            const importedItems = await importGeoJSON();
-            if (importedItems) {
-              appendItems(importedItems);
-              Alert.alert('Success', `Added ${importedItems.length} items`);
+            const parsed = await parseGeoJSON();
+            if (parsed) {
+              setGeoJsonFeatures(parsed.features);
+              setGeoJsonProperties(parsed.propertyKeys);
+              setPropertyMappingVisible(true);
             }
           },
         },
@@ -241,6 +248,23 @@ function AppContent() {
         },
       ],
     );
+  };
+
+  const handlePropertyMappingConfirm = (nameProperty: string, notesProperty: string) => {
+    const importedItems = processGeoJSON(geoJsonFeatures, nameProperty, notesProperty);
+    if (importedItems) {
+      appendItems(importedItems);
+      Alert.alert('Success', `Imported ${importedItems.length} items`);
+    }
+    setPropertyMappingVisible(false);
+    setGeoJsonFeatures([]);
+    setGeoJsonProperties([]);
+  };
+
+  const handlePropertyMappingCancel = () => {
+    setPropertyMappingVisible(false);
+    setGeoJsonFeatures([]);
+    setGeoJsonProperties([]);
   };
 
   if (!isLoaded) {
@@ -266,6 +290,7 @@ function AppContent() {
         onConfirmLocation={confirmLocation}
         onCompleteReposition={completeReposition}
         onCancelReposition={cancelReposition}
+        onItemPress={handleView}
       />
 
       <MenuToggleButton onPress={() => setMenuVisible(true)} />
@@ -314,6 +339,13 @@ function AppContent() {
       <AboutModal
         visible={aboutVisible}
         onClose={() => setAboutVisible(false)}
+      />
+
+      <PropertyMappingModal
+        visible={propertyMappingVisible}
+        properties={geoJsonProperties}
+        onConfirm={handlePropertyMappingConfirm}
+        onCancel={handlePropertyMappingCancel}
       />
 
       {/* Edge swipe zones */}

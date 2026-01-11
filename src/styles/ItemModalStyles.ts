@@ -194,4 +194,28 @@ export const itemModalStyles = StyleSheet.create({
   editButton: {
     backgroundColor: '#3498db',
   },
+  propertiesSection: {
+    marginBottom: 15,
+    backgroundColor: '#f8f9fa',
+    padding: 10,
+    borderRadius: 8,
+  },
+  propertyRow: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  propertyKey: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#555',
+    marginRight: 8,
+    minWidth: 80,
+  },
+  propertyValue: {
+    fontSize: 13,
+    color: '#333',
+    flex: 1,
+  },
 });

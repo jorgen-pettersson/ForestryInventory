@@ -64,6 +64,9 @@ export const en = {
   addedItems: 'Added {count} items',
   exportFormat: 'Export Format',
   all: 'All',
+  mapProperties: 'Map Properties',
+  selectNameProperty: 'Select property for item name',
+  selectNotesProperty: 'Select property for item notes',
 
   // Alerts
   deleteItem: 'Delete Item',

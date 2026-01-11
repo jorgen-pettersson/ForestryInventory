@@ -173,6 +173,21 @@ export function ItemModal({
               </View>
             )}
 
+            {/* GeoJSON Properties - only in view mode */}
+            {isViewMode && item.properties && Object.keys(item.properties).length > 0 && (
+              <View style={styles.propertiesSection}>
+                <Text style={styles.viewLabel}>Properties</Text>
+                {Object.entries(item.properties)
+                  .filter(([key]) => !['name', 'Name', 'NAME', 'notes', 'Notes', 'description', 'Description', 'fid'].includes(key))
+                  .map(([key, value]) => (
+                    <View key={key} style={styles.propertyRow}>
+                      <Text style={styles.propertyKey}>{key}:</Text>
+                      <Text style={styles.propertyValue}>{String(value ?? '-')}</Text>
+                    </View>
+                  ))}
+              </View>
+            )}
+
             {/* Item Media Section */}
             {isViewMode ? (
               itemMediaCount > 0 && (

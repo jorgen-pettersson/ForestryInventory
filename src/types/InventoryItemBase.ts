@@ -10,4 +10,5 @@ export interface InventoryItemBase {
   created: string;
   history: HistoryEntry[];
   media: MediaItem[];
+  properties?: Record<string, any>;
 }

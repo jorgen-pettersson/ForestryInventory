@@ -9,3 +9,4 @@ export * from './Map/InventoryMap';
 export * from './MediaGallery';
 export * from './MediaViewer';
 export * from './AboutModal';
+export * from './PropertyMappingModal';

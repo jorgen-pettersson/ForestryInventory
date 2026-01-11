@@ -18,6 +18,7 @@ interface InventoryMapProps {
   onConfirmLocation: () => void;
   onCompleteReposition?: () => void;
   onCancelReposition?: () => void;
+  onItemPress?: (item: InventoryItem) => void;
 }
 
 export function InventoryMap({
@@ -31,6 +32,7 @@ export function InventoryMap({
   onConfirmLocation,
   onCompleteReposition,
   onCancelReposition,
+  onItemPress,
 }: InventoryMapProps) {
   return (
     <View style={styles.mapContainer}>
@@ -53,6 +55,7 @@ export function InventoryMap({
                   title={item.name}
                   description={item.notes}
                   pinColor="green"
+                  onCalloutPress={() => onItemPress?.(item)}
                 />
               );
             } else {
@@ -60,9 +63,11 @@ export function InventoryMap({
                 <Polygon
                   key={item.id}
                   coordinates={item.coordinates}
-                  strokeColor="green"
+                  strokeColor="black"
                   fillColor="rgba(0,255,0,0.3)"
                   strokeWidth={2}
+                  tappable
+                  onPress={() => onItemPress?.(item)}
                 />
               );
             }

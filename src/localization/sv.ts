@@ -66,6 +66,9 @@ export const sv: Record<TranslationKeys, string> = {
   addedItems: 'Lade till {count} objekt',
   exportFormat: 'Exportformat',
   all: 'Alla',
+  mapProperties: 'Mappa egenskaper',
+  selectNameProperty: 'Välj egenskap för namn',
+  selectNotesProperty: 'Välj egenskap för anteckningar',
 
   // Alerts
   deleteItem: 'Radera objekt',

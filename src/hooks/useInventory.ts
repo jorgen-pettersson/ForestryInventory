@@ -125,7 +125,24 @@ export function useInventory() {
   };
 
   const appendItems = (newItems: InventoryItem[]) => {
-    setItems(prev => [...prev, ...newItems]);
+    setItems(prev => {
+      const result = [...prev];
+      for (const newItem of newItems) {
+        const existingIndex = result.findIndex(item => item.id === newItem.id);
+        if (existingIndex >= 0) {
+          // Update existing item, preserve history and media from existing
+          result[existingIndex] = {
+            ...newItem,
+            history: result[existingIndex].history,
+            media: result[existingIndex].media,
+          };
+        } else {
+          // Add new item
+          result.push(newItem);
+        }
+      }
+      return result;
+    });
   };
 
   return {
