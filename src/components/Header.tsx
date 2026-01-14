@@ -12,7 +12,7 @@ export function Header({isOnline, gpsTracking}: HeaderProps) {
   const {t} = useLocalization();
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, __DEV__ && styles.debugHeader]}>
       <Text style={styles.title}>{t('appName')}</Text>
       <View style={styles.statusContainer}>
         <View style={[styles.statusDot, isOnline && styles.online]} />

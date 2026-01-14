@@ -9,6 +9,9 @@ export const headerStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  debugHeader: {
+    backgroundColor: '#c0392b',
+  },
   title: {
     color: 'white',
     fontSize: 20,
