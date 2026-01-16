@@ -9,6 +9,17 @@ const EXPORT_DIR = `${RNFS.CachesDirectoryPath}/export`;
 const IMPORT_DIR = `${RNFS.CachesDirectoryPath}/import`;
 const MEDIA_DIR = `${RNFS.DocumentDirectoryPath}/media`;
 
+// Calculate area in square meters from coordinates
+const calculateArea = (coords: Coordinate[]): number => {
+  let area = 0;
+  for (let i = 0; i < coords.length; i++) {
+    const j = (i + 1) % coords.length;
+    area += coords[i].latitude * coords[j].longitude;
+    area -= coords[j].latitude * coords[i].longitude;
+  }
+  return Math.abs(area / 2) * 111320 * 111320;
+};
+
 export function useExportImport() {
   const ensureDir = async (dir: string) => {
     const exists = await RNFS.exists(dir);
@@ -451,7 +462,7 @@ export function useExportImport() {
                       props.fill || props.Fill || props.FILL ||
                       props.fillColor || props.FillColor || undefined;
 
-        const area: InventoryArea = {
+        const areaItem: InventoryArea = {
           id,
           type: 'area',
           name,
@@ -459,12 +470,13 @@ export function useExportImport() {
           visible: true,
           created: now,
           coordinates: coords,
+          area: calculateArea(coords),
           history: [],
           media: [],
           properties: props,
           color,
         };
-        items.push(area);
+        items.push(areaItem);
       }
     }
 
