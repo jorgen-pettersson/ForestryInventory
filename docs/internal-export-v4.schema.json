@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/forestry-internal-export-v4.schema.json",
+  "title": "Forestry Inventory Internal Export (v4)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["version", "places"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 4
+    },
+    "places": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Place" }
+    }
+  },
+  "$defs": {
+    "Coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latitude", "longitude"],
+      "properties": {
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" }
+      }
+    },
+    "MediaItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "uri", "type", "createdAt"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "uri": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "enum": ["photo", "video"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "thumbnailUri": { "type": "string" },
+        "caption": { "type": "string" }
+      }
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["timestamp", "title", "body", "media"],
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "media": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MediaItem" }
+        }
+      }
+    },
+    "PlaceSource": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["system"],
+      "properties": {
+        "system": { "type": "string" },
+        "sourceFile": { "type": "string" },
+        "sourceIds": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "importedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PopulationMeasurement": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["value", "unit"],
+      "properties": {
+        "value": {
+          "oneOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "unit": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    },
+    "SiteAttributes": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "PopulationItem": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "treeLayer": { "type": "string" },
+        "treeSpecies": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "code": { "type": "string" },
+                "label": { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "treeSpecies_ref": { "type": "string" },
+        "objectPopulationId": { "type": "string" }
+      }
+    },
+    "PlaceAttributes": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "notes": { "type": "string" },
+        "areaHa": { "type": "number" },
+        "site": { "$ref": "#/$defs/SiteAttributes" },
+        "population": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PopulationItem" }
+        },
+        "color": { "type": "string" },
+        "parentPlaceId": { "type": "string" },
+        "splitFromParentId": { "type": "string" },
+        "splitLine": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Coordinate" }
+        }
+      }
+    },
+    "PointGeometry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "Point" },
+        "coordinates": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 3
+        }
+      }
+    },
+    "PolygonGeometry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "Polygon" },
+        "coordinates": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 2,
+              "maxItems": 3
+            },
+            "minItems": 3
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "MultiPolygonGeometry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "MultiPolygon" },
+        "coordinates": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 2,
+                "maxItems": 3
+              },
+              "minItems": 3
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "PlaceGeometry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["geometry"],
+      "properties": {
+        "id": { "type": "string" },
+        "geometry": {
+          "oneOf": [
+            { "$ref": "#/$defs/PointGeometry" },
+            { "$ref": "#/$defs/PolygonGeometry" },
+            { "$ref": "#/$defs/MultiPolygonGeometry" }
+          ]
+        },
+        "crs": { "type": "string" },
+        "bbox": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "source": { "type": "string" },
+            "method": { "type": "string" },
+            "confidence": { "type": "number" }
+          }
+        }
+      }
+    },
+    "PlaceRelation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type", "targetPlaceId"],
+      "properties": {
+        "type": { "type": "string" },
+        "targetPlaceId": { "type": "string" }
+      }
+    },
+    "PatchOperation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["op", "path", "value"],
+          "properties": {
+            "op": { "const": "add" },
+            "path": { "type": "string" },
+            "value": {}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["op", "path"],
+          "properties": {
+            "op": { "const": "remove" },
+            "path": { "type": "string" },
+            "from": {}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["op", "path", "value"],
+          "properties": {
+            "op": { "const": "replace" },
+            "path": { "type": "string" },
+            "from": {},
+            "value": {}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["op", "path", "from"],
+          "properties": {
+            "op": { "const": "move" },
+            "path": { "type": "string" },
+            "from": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["op", "path", "from"],
+          "properties": {
+            "op": { "const": "copy" },
+            "path": { "type": "string" },
+            "from": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["op", "path", "value"],
+          "properties": {
+            "op": { "const": "test" },
+            "path": { "type": "string" },
+            "value": {}
+          }
+        }
+      ]
+    },
+    "PlaceChange": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "placeId", "at", "actor", "kind", "patch"],
+      "properties": {
+        "id": { "type": "string" },
+        "placeId": { "type": "string" },
+        "at": { "type": "string", "format": "date-time" },
+        "actor": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["type"],
+          "properties": {
+            "type": { "enum": ["user", "system", "import"] },
+            "id": { "type": "string" }
+          }
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "place.created",
+            "place.deleted",
+            "place.renamed",
+            "attributes.updated",
+            "geometry.added",
+            "geometry.replaced",
+            "geometry.deleted",
+            "relation.added",
+            "relation.removed",
+            "media.attached",
+            "media.removed",
+            "visibility.toggled",
+            "journal.entryAdded",
+            "source.imported",
+            "source.reconciled"
+          ]
+        },
+        "patch": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PatchOperation" }
+        },
+        "summary": { "type": "string" },
+        "reason": { "type": "string" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "Place": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "placeType"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "placeType": {
+          "type": "string",
+          "enum": ["Place_Point", "Place_Area"]
+        },
+        "source": { "$ref": "#/$defs/PlaceSource" },
+        "attributes": { "$ref": "#/$defs/PlaceAttributes" },
+        "geometries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PlaceGeometry" }
+        },
+        "relations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PlaceRelation" }
+        },
+        "userJournal": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/HistoryEntry" }
+        },
+        "media": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MediaItem" }
+        },
+        "visible": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "modifiedAt": { "type": "string", "format": "date-time" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "changeHistory": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PlaceChange" }
+        }
+      }
+    }
+  }
+}
