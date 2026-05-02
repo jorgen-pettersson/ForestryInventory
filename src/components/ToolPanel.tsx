@@ -22,6 +22,9 @@ interface ToolPanelProps {
   onSetDrawingMode: (mode: DrawingMode) => void;
   areaPointsCount: number;
   onCompleteArea: () => void;
+  onCompleteLine: () => void;
+  onToggleLineRecording: () => void;
+  isLineRecording: boolean;
   onClearDrawing: () => void;
   sidebarVisible: boolean;
   onToggleSidebar: () => void;
@@ -41,6 +44,9 @@ export function ToolPanel({
   onSetDrawingMode,
   areaPointsCount,
   onCompleteArea,
+  onCompleteLine,
+  onToggleLineRecording,
+  isLineRecording,
   onClearDrawing,
   sidebarVisible,
   onToggleSidebar,
@@ -117,7 +123,7 @@ export function ToolPanel({
             ]}
             onPress={() =>
               handleAction(() =>
-                onSetDrawingMode(drawingMode === "point" ? "none" : "point")
+                onSetDrawingMode(drawingMode === "point" ? "none" : "point"),
               )
             }
           >
@@ -139,7 +145,7 @@ export function ToolPanel({
             ]}
             onPress={() =>
               handleAction(() =>
-                onSetDrawingMode(drawingMode === "area" ? "none" : "area")
+                onSetDrawingMode(drawingMode === "area" ? "none" : "area"),
               )
             }
           >
@@ -154,6 +160,48 @@ export function ToolPanel({
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[
+              styles.toolButton,
+              drawingMode === "line" && styles.activeButton,
+            ]}
+            onPress={() =>
+              handleAction(() =>
+                onSetDrawingMode(drawingMode === "line" ? "none" : "line"),
+              )
+            }
+          >
+            <Text style={styles.buttonIcon}>🛤</Text>
+            <Text
+              style={[
+                styles.buttonText,
+                drawingMode === "line" && styles.activeButtonText,
+              ]}
+            >
+              {t("addTrack")}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toolButton,
+              drawingMode === "lineRecord" && styles.activeButton,
+            ]}
+            onPress={() => handleAction(onToggleLineRecording)}
+          >
+            <Text style={styles.buttonIcon}>
+              {isLineRecording ? "⏹" : "🎙"}
+            </Text>
+            <Text
+              style={[
+                styles.buttonText,
+                drawingMode === "lineRecord" && styles.activeButtonText,
+              ]}
+            >
+              {isLineRecording ? t("stopTrackRecording") : t("recordTrack")}
+            </Text>
+          </TouchableOpacity>
+
           {drawingMode === "area" && areaPointsCount >= 3 && (
             <TouchableOpacity
               style={styles.toolButton}
@@ -161,6 +209,16 @@ export function ToolPanel({
             >
               <Text style={styles.buttonIcon}>✓</Text>
               <Text style={styles.buttonText}>{t("completeArea")}</Text>
+            </TouchableOpacity>
+          )}
+
+          {drawingMode === "line" && areaPointsCount >= 2 && (
+            <TouchableOpacity
+              style={styles.toolButton}
+              onPress={() => handleAction(onCompleteLine)}
+            >
+              <Text style={styles.buttonIcon}>✓</Text>
+              <Text style={styles.buttonText}>{t("completeTrack")}</Text>
             </TouchableOpacity>
           )}
 

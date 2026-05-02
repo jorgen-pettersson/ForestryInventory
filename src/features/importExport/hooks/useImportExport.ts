@@ -78,12 +78,12 @@ export function useImportExport() {
           // Uses ObsS_Species transformations (1→T, 2→G, etc.)
           const internalSpeciesCode = transformForestandCode(
             "ObsS_Species",
-            forestandSpeciesCode
+            forestandSpeciesCode,
           );
 
           const speciesOptions = getAttributeOptions("species");
           const speciesOption = speciesOptions.find(
-            (o) => o.code === internalSpeciesCode
+            (o) => o.code === internalSpeciesCode,
           );
 
           siteIndexSpec.species = {
@@ -115,7 +115,7 @@ export function useImportExport() {
       // Transform code: Forestand → Internal
       const internalCode = transformForestandCode(
         forestandField,
-        String(forestandCode)
+        String(forestandCode),
       );
 
       // Look up label from attribute master using internal code
@@ -132,7 +132,7 @@ export function useImportExport() {
   };
 
   const buildInternalPopulationAttributes = (
-    forestandPopulation: any[] | undefined
+    forestandPopulation: any[] | undefined,
   ): any[] | undefined => {
     if (!forestandPopulation || forestandPopulation.length === 0) {
       return undefined;
@@ -286,6 +286,13 @@ export function useImportExport() {
           lng = first[0];
           lat = first[1];
         }
+      } else if (geometry?.type === "LineString") {
+        const line = geometry.coordinates as number[][];
+        const first = line[0];
+        if (first) {
+          lng = first[0];
+          lat = first[1];
+        }
       }
 
       const area = place.attributes?.areaHa
@@ -354,7 +361,7 @@ export function useImportExport() {
   // Export as ZIP bundle
   const exportData = async (
     places: Place[],
-    format: "json" | "csv" | "geojson" | "all" = "all"
+    format: "json" | "csv" | "geojson" | "all" = "all",
   ): Promise<boolean> => {
     try {
       await cleanDir(EXPORT_DIR);
@@ -382,7 +389,7 @@ export function useImportExport() {
         const jsonData = JSON.stringify(
           { version: 4, places: exportPlaces },
           null,
-          2
+          2,
         );
         await RNFS.writeFile(`${EXPORT_DIR}/data.json`, jsonData, "utf8");
       }
@@ -423,7 +430,7 @@ export function useImportExport() {
       console.error("Export error:", error);
       Alert.alert(
         t("exportError"),
-        t("exportFailed", { message: error.message })
+        t("exportFailed", { message: error.message }),
       );
       return false;
     }
@@ -466,7 +473,7 @@ export function useImportExport() {
 
       const jsonData = await RNFS.readFile(jsonPath, "utf8");
       const importedPlaces: Place[] = normalizeInventoryData(
-        JSON.parse(jsonData)
+        JSON.parse(jsonData),
       );
 
       // Copy media files and update URIs
@@ -527,7 +534,7 @@ export function useImportExport() {
       console.error("Import error:", error);
       Alert.alert(
         t("importError"),
-        t("importFailed", { message: error.message })
+        t("importFailed", { message: error.message }),
       );
       return null;
     }
@@ -553,7 +560,7 @@ export function useImportExport() {
     // Find a suggested name key (prefer placeId or similar)
     let suggestedNameKey: string | undefined;
     const placeIdKey = propertyKeys.find((k) =>
-      k.toLowerCase().endsWith("placeid")
+      k.toLowerCase().endsWith("placeid"),
     );
     if (placeIdKey) {
       suggestedNameKey = placeIdKey;
@@ -591,7 +598,7 @@ export function useImportExport() {
 
       const geoJsonData = await RNFS.readFile(
         filePath.replace("file://", ""),
-        "utf8"
+        "utf8",
       );
       const geoJson = JSON.parse(geoJsonData);
       return buildParsedGeoJSON(geoJson);
@@ -605,7 +612,7 @@ export function useImportExport() {
       console.error("GeoJSON parse error:", error);
       Alert.alert(
         t("importError"),
-        t("parseGeoJsonFailed", { message: error.message })
+        t("parseGeoJsonFailed", { message: error.message }),
       );
       return null;
     }
@@ -637,7 +644,7 @@ export function useImportExport() {
 
       const xmlData = await RNFS.readFile(
         filePath.replace("file://", ""),
-        "utf8"
+        "utf8",
       );
 
       const geoJson = convertForestandXmlToGeoJson(xmlData);
@@ -652,7 +659,7 @@ export function useImportExport() {
       console.error("Forestand XML import error:", error);
       Alert.alert(
         t("importError"),
-        t("importFailed", { message: error.message })
+        t("importFailed", { message: error.message }),
       );
       return null;
     }
@@ -712,7 +719,7 @@ export function useImportExport() {
     notes: string,
     props: any,
     now: string,
-    suffix?: string
+    suffix?: string,
   ): Place | null => {
     if (!rings || rings.length === 0) {
       return null;
@@ -774,7 +781,7 @@ export function useImportExport() {
     features: any[],
     nameProperty: string,
     notesProperty: string,
-    existingPlaces: Place[] = []
+    existingPlaces: Place[] = [],
   ): Place[] | null => {
     const now = new Date().toISOString();
     const items: Place[] = [];
@@ -808,14 +815,14 @@ export function useImportExport() {
 
     const mergeAttributes = (
       existing: Place["attributes"],
-      incoming: Place["attributes"]
+      incoming: Place["attributes"],
     ) => {
       return {
         ...existing,
         ...Object.fromEntries(
           Object.entries(incoming || {}).filter(
-            ([, value]) => value !== undefined
-          )
+            ([, value]) => value !== undefined,
+          ),
         ),
       };
     };
@@ -855,15 +862,15 @@ export function useImportExport() {
       const baseId = existingPlace
         ? existingPlace.id
         : props.fid != null
-        ? String(props.fid)
-        : Date.now().toString() + Math.random().toString(36).substr(2, 9);
+          ? String(props.fid)
+          : Date.now().toString() + Math.random().toString(36).substr(2, 9);
 
       if (feature.geometry.type === "Point") {
         const siteAttributes = buildInternalAttributesFromSite(
-          props?.forestand?.site
+          props?.forestand?.site,
         );
         const populationAttributes = buildInternalPopulationAttributes(
-          props?.forestand?.population
+          props?.forestand?.population,
         );
         const point: Place = {
           id: baseId,
@@ -895,7 +902,7 @@ export function useImportExport() {
           properties: props,
         };
         items.push(
-          existingPlace ? mergeDuplicate(existingPlace, point) : point
+          existingPlace ? mergeDuplicate(existingPlace, point) : point,
         );
       } else if (feature.geometry.type === "Polygon") {
         // Polygon: all rings (outer + holes)
@@ -903,10 +910,10 @@ export function useImportExport() {
         const areaItem = processPolygon(rings, baseId, name, notes, props, now);
         if (areaItem) {
           const siteAttributes = buildInternalAttributesFromSite(
-            props?.forestand?.site
+            props?.forestand?.site,
           );
           const populationAttributes = buildInternalPopulationAttributes(
-            props?.forestand?.population
+            props?.forestand?.population,
           );
           areaItem.attributes = {
             ...areaItem.attributes,
@@ -918,7 +925,7 @@ export function useImportExport() {
               : {}),
           };
           items.push(
-            existingPlace ? mergeDuplicate(existingPlace, areaItem) : areaItem
+            existingPlace ? mergeDuplicate(existingPlace, areaItem) : areaItem,
           );
         }
       } else if (feature.geometry.type === "MultiPolygon") {
@@ -946,10 +953,10 @@ export function useImportExport() {
           properties: props,
         };
         const siteAttributes = buildInternalAttributesFromSite(
-          props?.forestand?.site
+          props?.forestand?.site,
         );
         const populationAttributes = buildInternalPopulationAttributes(
-          props?.forestand?.population
+          props?.forestand?.population,
         );
         areaItem.attributes = {
           ...areaItem.attributes,
@@ -961,7 +968,34 @@ export function useImportExport() {
             : {}),
         };
         items.push(
-          existingPlace ? mergeDuplicate(existingPlace, areaItem) : areaItem
+          existingPlace ? mergeDuplicate(existingPlace, areaItem) : areaItem,
+        );
+      } else if (feature.geometry.type === "LineString") {
+        const lineItem: Place = {
+          id: baseId,
+          placeType: "Place_Line",
+          source: {
+            system: "geojson",
+            importedAt: now,
+          },
+          attributes: {
+            name: name || undefined,
+            notes: notes || undefined,
+          },
+          geometries: [
+            {
+              geometry: feature.geometry,
+              crs: "EPSG:4326",
+            },
+          ],
+          visible: true,
+          createdAt: now,
+          userJournal: [],
+          media: [],
+          properties: props,
+        };
+        items.push(
+          existingPlace ? mergeDuplicate(existingPlace, lineItem) : lineItem,
         );
       }
     }
@@ -983,7 +1017,7 @@ export function useImportExport() {
       const forestandParentId = place.properties?.forestand?.parentPlaceId;
       if (forestandParentId) {
         const internalParentId = forestandIdToInternalId.get(
-          String(forestandParentId)
+          String(forestandParentId),
         );
         if (internalParentId) {
           place.attributes = {

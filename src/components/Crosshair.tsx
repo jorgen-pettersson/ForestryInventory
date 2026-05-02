@@ -7,7 +7,7 @@ import { DrawingMode } from "../features/inventory";
 interface CrosshairProps {
   drawingMode: DrawingMode;
   areaPointsCount: number;
-  repositionType?: "point" | "area";
+  repositionType?: "point" | "area" | "line";
   onConfirm: () => void;
   onCompleteReposition?: () => void;
   onCompleteSplit?: () => void;
@@ -24,7 +24,11 @@ export function Crosshair({
   onCancelReposition,
 }: CrosshairProps) {
   const { t } = useLocalization();
-  if (drawingMode === "none" || drawingMode === "splitSelect") {
+  if (
+    drawingMode === "none" ||
+    drawingMode === "splitSelect" ||
+    drawingMode === "lineRecord"
+  ) {
     return null;
   }
 
@@ -35,9 +39,15 @@ export function Crosshair({
     if (drawingMode === "area") {
       return `${t("addAreaPoint")} ${areaPointsCount + 1}`;
     }
+    if (drawingMode === "line") {
+      return `${t("addTrackPoint")} ${areaPointsCount + 1}`;
+    }
     if (drawingMode === "reposition") {
       if (repositionType === "point") {
         return t("setNewPosition");
+      }
+      if (repositionType === "line") {
+        return `${t("addTrackPoint")} ${areaPointsCount + 1}`;
       }
       return `${t("addAreaPoint")} ${areaPointsCount + 1}`;
     }
@@ -62,6 +72,16 @@ export function Crosshair({
       {drawingMode === "reposition" && (
         <View style={styles.repositionButtons}>
           {repositionType === "area" && areaPointsCount >= 3 && (
+            <TouchableOpacity
+              style={styles.completeButton}
+              onPress={onCompleteReposition}
+            >
+              <Text style={styles.confirmButtonText}>
+                {t("completeReposition")}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {repositionType === "line" && areaPointsCount >= 2 && (
             <TouchableOpacity
               style={styles.completeButton}
               onPress={onCompleteReposition}

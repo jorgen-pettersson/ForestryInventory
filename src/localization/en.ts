@@ -23,7 +23,11 @@ export const en = {
   satelliteView: "Satellite View",
   addPoint: "Add Point",
   drawArea: "Draw Area",
+  addTrack: "Add Track",
+  recordTrack: "Record Track",
+  stopTrackRecording: "Stop Recording",
   completeArea: "Complete Area",
+  completeTrack: "Complete Track",
   clearDrawing: "Clear Drawing",
   itemsList: "Items List",
   about: "About",
@@ -39,6 +43,7 @@ export const en = {
   // Item Modal
   newPoint: "New Point",
   newArea: "New Area",
+  newTrack: "New Track",
   editItem: "Edit Item",
   viewItem: "View Item",
   name: "Name",
@@ -101,11 +106,13 @@ export const en = {
   exportFailed: "Failed to export data: {message}",
   importFailed: "Failed to import data: {message}",
   noDataJson: "No data.json found in the ZIP file",
-  noValidFeatures: "No valid Point or Polygon features found in GeoJSON",
+  noValidFeatures:
+    "No valid Point, LineString, or Polygon features found in GeoJSON",
   invalidGeoJson: "Invalid GeoJSON: no features array found",
   parseGeoJsonFailed: "Failed to parse GeoJSON: {message}",
   forestandConvertFailed: "Failed to convert Forestand XML: {details}",
   areaMinPoints: "An area needs at least 3 points",
+  trackMinPoints: "A track needs at least 2 points",
   nameRequired: "Please enter a name",
 
   // About
@@ -124,6 +131,7 @@ export const en = {
   // Map
   confirmLocation: "Confirm",
   addAreaPoint: "Add Point",
+  addTrackPoint: "Add Track Point",
   addSplitPoint: "Add Split Point",
   setNewPosition: "Set New Position",
   completeReposition: "Done",
@@ -144,6 +152,7 @@ export const en = {
   split: "Split",
   adjustSplit: "Adjust split",
   colorDynamic: "Dynamic",
+  trackLength: "Track Length",
 
   // Language names
   english: "English",

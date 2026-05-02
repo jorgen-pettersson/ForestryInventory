@@ -20,7 +20,7 @@ import { Place, HistoryEntry, MediaItem } from "../features/inventory";
 import { itemModalStyles as styles, mediaStyles } from "../styles";
 import { useMedia } from "../hooks";
 import { MediaGallery } from "./MediaGallery";
-import { formatArea } from "../utils";
+import { formatArea, getPlaceLengthMeters } from "../utils";
 import { useLocalization } from "../localization";
 import {
   getAllAttributeOptionsMap,
@@ -163,12 +163,12 @@ export function ItemModal({
     return allSelectAttributes.filter(
       (attr) =>
         !existingKeys.includes(attr.name) &&
-        !excludeFromAdding.includes(attr.name)
+        !excludeFromAdding.includes(attr.name),
     );
   }, [item.attributes]);
 
   const getSiteIndexSpec = (
-    site: Record<string, any> | undefined
+    site: Record<string, any> | undefined,
   ): Record<string, any> | null => {
     if (site?.SiteIndexSpec && typeof site.SiteIndexSpec === "object") {
       return site.SiteIndexSpec as Record<string, any>;
@@ -185,7 +185,7 @@ export function ItemModal({
   };
 
   const buildSiteWithIndexSpec = (
-    updater: (current: Record<string, any>) => Record<string, any> | null
+    updater: (current: Record<string, any>) => Record<string, any> | null,
   ) => {
     const site = item.attributes?.site || {};
     const current = getSiteIndexSpec(site) || {};
@@ -243,7 +243,7 @@ export function ItemModal({
 
       setSelectedNewAttribute("__none__");
     },
-    [item, onChangeItem]
+    [item, onChangeItem],
   );
 
   // Helper to remove an attribute
@@ -280,7 +280,7 @@ export function ItemModal({
         },
       ]);
     },
-    [item, onChangeItem, t]
+    [item, onChangeItem, t],
   );
 
   // Helper to check if attribute is removable
@@ -294,7 +294,7 @@ export function ItemModal({
   const renderProperties = (
     props: Record<string, any>,
     prefix = "",
-    depth = 0
+    depth = 0,
   ): React.ReactNode[] => {
     const excludeKeys = [
       "name",
@@ -325,7 +325,7 @@ export function ItemModal({
         result.push(
           <Text key={`${fullKey}-header`} style={styles.propertySubheader}>
             {key}:
-          </Text>
+          </Text>,
         );
         result.push(...renderProperties(value, fullKey, depth + 1));
       } else {
@@ -340,7 +340,7 @@ export function ItemModal({
           >
             <Text style={styles.propertyKey}>{key}:</Text>
             <Text style={styles.propertyValue}>{formatValue(value)}</Text>
-          </View>
+          </View>,
         );
       }
     }
@@ -402,7 +402,7 @@ export function ItemModal({
   const handleRemoveItemMedia = async (mediaItem: MediaItem) => {
     await deleteMedia(mediaItem);
     const updatedMedia = (item.media || []).filter(
-      (m) => m.id !== mediaItem.id
+      (m) => m.id !== mediaItem.id,
     );
     onChangeItem({ ...item, media: updatedMedia });
   };
@@ -428,6 +428,7 @@ export function ItemModal({
     if (isViewMode) return item.attributes?.name || t("viewItem");
     if (isEditMode) return t("editItem");
     if (item.placeType === "Place_Area") return t("newArea");
+    if (item.placeType === "Place_Line") return t("newTrack");
     if (item.placeType === "Place_Point") return t("newPoint");
     return t("newPoint");
   };
@@ -660,6 +661,21 @@ export function ItemModal({
               </View>
             )}
 
+            {item.placeType === "Place_Line" && (
+              <View style={styles.viewField}>
+                <Text style={styles.viewLabel}>{t("trackLength")}</Text>
+                <Text style={styles.viewValue}>
+                  {(() => {
+                    const lengthM = getPlaceLengthMeters(item as Place);
+                    if (!lengthM) return "-";
+                    return lengthM >= 1000
+                      ? `${(lengthM / 1000).toFixed(2)} km`
+                      : `${Math.round(lengthM)} m`;
+                  })()}
+                </Text>
+              </View>
+            )}
+
             {/* Color picker for areas */}
             {item.placeType === "Place_Area" && !isViewMode && (
               <View style={styles.viewField}>
@@ -853,10 +869,10 @@ export function ItemModal({
 
                             const entries = Object.entries(pop || {});
                             const meta = entries.filter(([k]) =>
-                              metaKeys.includes(k)
+                              metaKeys.includes(k),
                             );
                             const measurements = entries.filter(
-                              ([k]) => !metaKeys.includes(k)
+                              ([k]) => !metaKeys.includes(k),
                             );
 
                             const renderValue = (val: any) => {
@@ -882,10 +898,10 @@ export function ItemModal({
                             };
 
                             const treeLayer = meta.find(
-                              ([k]) => k === "treeLayer"
+                              ([k]) => k === "treeLayer",
                             )?.[1];
                             const treeSpecies = meta.find(
-                              ([k]) => k === "treeSpecies"
+                              ([k]) => k === "treeSpecies",
                             )?.[1];
                             const treeSpeciesLabel =
                               treeSpecies && typeof treeSpecies === "object"
@@ -896,7 +912,7 @@ export function ItemModal({
                             const cardTitle = treeLayer
                               ? treeSpeciesLabel
                                 ? `${formatValue(
-                                    treeLayer
+                                    treeLayer,
                                   )} / ${treeSpeciesLabel}`
                                 : formatValue(treeLayer)
                               : `${t("population")} ${index + 1}`;
@@ -921,7 +937,7 @@ export function ItemModal({
                                       k !== "treeLayer" &&
                                       k !== "treeSpecies" &&
                                       k !== "treeSpecies_ref" &&
-                                      v
+                                      v,
                                   )
                                   .map(([k, v]) => (
                                     <View
@@ -952,7 +968,7 @@ export function ItemModal({
                                 ))}
                               </View>
                             );
-                          }
+                          },
                         )}
                       </ScrollView>
                     </View>
@@ -990,8 +1006,8 @@ export function ItemModal({
                         speciesValue && typeof speciesValue === "object"
                           ? String((speciesValue as any).code ?? "")
                           : speciesValue != null
-                          ? String(speciesValue)
-                          : "";
+                            ? String(speciesValue)
+                            : "";
                       let currentLabel =
                         speciesValue && typeof speciesValue === "object"
                           ? (speciesValue as any).label
@@ -999,7 +1015,7 @@ export function ItemModal({
                       let currentCode = rawCode;
                       if (!currentCode && currentLabel) {
                         const labelMatch = speciesOptions?.find(
-                          (option) => option.label === currentLabel
+                          (option) => option.label === currentLabel,
                         );
                         if (labelMatch) {
                           currentCode = labelMatch.code;
@@ -1007,14 +1023,14 @@ export function ItemModal({
                       }
                       if (currentCode && !currentLabel && speciesOptions) {
                         const codeMatch = speciesOptions.find(
-                          (option) => option.code === currentCode
+                          (option) => option.code === currentCode,
                         );
                         if (codeMatch?.label) {
                           currentLabel = codeMatch.label;
                         }
                       }
                       const hasCurrent = speciesOptions?.some(
-                        (option) => option.code === currentCode
+                        (option) => option.code === currentCode,
                       );
                       const pickerOptions =
                         hasCurrent || !currentCode
@@ -1029,7 +1045,7 @@ export function ItemModal({
                       const emptyValue = "__none__";
                       const selectedValue =
                         pickerOptions.find(
-                          (option) => option.code === currentCode
+                          (option) => option.code === currentCode,
                         )?.code ?? emptyValue;
 
                       return (
@@ -1102,7 +1118,7 @@ export function ItemModal({
                                   return;
                                 }
                                 const selectedOption = pickerOptions.find(
-                                  (o) => o.code === selected
+                                  (o) => o.code === selected,
                                 );
                                 const newSite = buildSiteWithIndexSpec(() => ({
                                   ...composite,
@@ -1255,8 +1271,8 @@ export function ItemModal({
                         value && typeof value === "object"
                           ? String((value as any).code ?? "")
                           : value != null
-                          ? String(value)
-                          : "";
+                            ? String(value)
+                            : "";
                       let currentLabel =
                         value && typeof value === "object"
                           ? (value as any).label
@@ -1264,7 +1280,7 @@ export function ItemModal({
                       let currentCode = rawCode;
                       if (!currentCode && currentLabel) {
                         const labelMatch = options.find(
-                          (option) => option.label === currentLabel
+                          (option) => option.label === currentLabel,
                         );
                         if (labelMatch) {
                           currentCode = labelMatch.code;
@@ -1272,14 +1288,14 @@ export function ItemModal({
                       }
                       if (currentCode && !currentLabel) {
                         const codeMatch = options.find(
-                          (option) => option.code === currentCode
+                          (option) => option.code === currentCode,
                         );
                         if (codeMatch?.label) {
                           currentLabel = codeMatch.label;
                         }
                       }
                       const hasCurrent = options.some(
-                        (option) => option.code === currentCode
+                        (option) => option.code === currentCode,
                       );
                       const pickerOptions =
                         hasCurrent || !currentCode
@@ -1294,7 +1310,7 @@ export function ItemModal({
                       const emptyValue = "__none__";
                       const selectedValue =
                         pickerOptions.find(
-                          (option) => option.code === currentCode
+                          (option) => option.code === currentCode,
                         )?.code ?? emptyValue;
 
                       return (
@@ -1352,7 +1368,7 @@ export function ItemModal({
                                   return;
                                 }
                                 const option = pickerOptions.find(
-                                  (entry) => entry.code === selectedCode
+                                  (entry) => entry.code === selectedCode,
                                 );
                                 onChangeItem({
                                   ...item,
@@ -1488,8 +1504,8 @@ export function ItemModal({
                           {availableToAdd
                             .sort((a, b) =>
                               getAttributeName(a.name).localeCompare(
-                                getAttributeName(b.name)
-                              )
+                                getAttributeName(b.name),
+                              ),
                             )
                             .map((attr) => (
                               <Picker.Item
@@ -1513,7 +1529,7 @@ export function ItemModal({
                 {(() => {
                   const changes = [...(item.changeHistory || [])].sort(
                     (a, b) =>
-                      new Date(b.at).getTime() - new Date(a.at).getTime()
+                      new Date(b.at).getTime() - new Date(a.at).getTime(),
                   );
 
                   if (changes.length === 0) {

@@ -25,7 +25,7 @@ export const addItem = (places: Place[], place: Place) => {
 
 export const updateItem = (places: Place[], updatedPlace: Place) => {
   return places.map((place) =>
-    place.id === updatedPlace.id ? updatedPlace : place
+    place.id === updatedPlace.id ? updatedPlace : place,
   );
 };
 
@@ -37,7 +37,7 @@ export const toggleItemVisibility = (places: Place[], id: string) => {
   return places.map((place) =>
     place.id === id
       ? { ...place, visible: place.visible === false ? true : false }
-      : place
+      : place,
   );
 };
 
@@ -68,7 +68,7 @@ export const appendItems = (places: Place[], newPlaces: Place[]) => {
 export const addItemWithTracking = (
   places: Place[],
   place: Place,
-  actor: ChangeActor
+  actor: ChangeActor,
 ): Place[] => {
   try {
     // Create "place.created" change event
@@ -88,7 +88,11 @@ export const addItemWithTracking = (
         },
       ],
       summary: `Created ${
-        place.placeType === "Place_Point" ? "point" : "area"
+        place.placeType === "Place_Point"
+          ? "point"
+          : place.placeType === "Place_Line"
+            ? "track"
+            : "area"
       }`,
       metadata: {
         source: place.source?.system,
@@ -111,13 +115,13 @@ export const updateItemWithTracking = (
   places: Place[],
   updatedPlace: Place,
   actor: ChangeActor,
-  reason?: string
+  reason?: string,
 ): Place[] => {
   try {
     const oldPlace = places.find((p) => p.id === updatedPlace.id);
     if (!oldPlace) {
       console.warn(
-        `[ChangeTracking] Cannot update - place ${updatedPlace.id} not found`
+        `[ChangeTracking] Cannot update - place ${updatedPlace.id} not found`,
       );
       return places;
     }
@@ -160,7 +164,7 @@ export const updateItemWithTracking = (
 export const toggleVisibilityWithTracking = (
   places: Place[],
   id: string,
-  actor: ChangeActor
+  actor: ChangeActor,
 ): Place[] => {
   try {
     const place = places.find((p) => p.id === id);
@@ -200,7 +204,7 @@ export const toggleVisibilityWithTracking = (
 export const importItemsWithTracking = (
   places: Place[],
   newPlaces: Place[],
-  source: string
+  source: string,
 ): Place[] => {
   try {
     const actor = getImportActor(source);
@@ -249,7 +253,7 @@ export const importItemsWithTracking = (
 export const appendItemsWithTracking = (
   places: Place[],
   newPlaces: Place[],
-  actor: ChangeActor
+  actor: ChangeActor,
 ): Place[] => {
   try {
     const result = [...places];
@@ -259,7 +263,7 @@ export const appendItemsWithTracking = (
       const placeWithGeomIds = ensureGeometryIds(newPlace);
 
       const existingIndex = result.findIndex(
-        (p) => p.id === placeWithGeomIds.id
+        (p) => p.id === placeWithGeomIds.id,
       );
 
       if (existingIndex >= 0) {

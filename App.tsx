@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -54,10 +54,12 @@ const SWIPE_THRESHOLD = 50;
 function AppContent() {
   const { gpsTracking, setGpsTracking, mapType, toggleMapType, isLoaded } =
     useSettings();
-  const { region, setRegion, toggleGPSTracking } = useLocation({
-    gpsTracking,
-    setGpsTracking,
-  });
+  const { region, setRegion, toggleGPSTracking, currentLocation } = useLocation(
+    {
+      gpsTracking,
+      setGpsTracking,
+    },
+  );
   const { language, setLanguage, t } = useLocalization();
   const {
     places,
@@ -132,6 +134,29 @@ function AppContent() {
       type: "Polygon",
       coordinates: [outer],
     };
+  };
+
+  const toGeoJsonLineString = (
+    coordinates: Coordinate[],
+  ): GeoJSON.LineString => ({
+    type: "LineString",
+    coordinates: coordinates.map((c) => [c.longitude, c.latitude]),
+  });
+
+  const distanceMeters = (a: Coordinate, b: Coordinate): number => {
+    const toRadians = (deg: number) => (deg * Math.PI) / 180;
+    const earthRadiusMeters = 6371000;
+    const lat1 = toRadians(a.latitude);
+    const lat2 = toRadians(b.latitude);
+    const deltaLat = toRadians(b.latitude - a.latitude);
+    const deltaLng = toRadians(b.longitude - a.longitude);
+    const h =
+      Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+      Math.cos(lat1) *
+        Math.cos(lat2) *
+        Math.sin(deltaLng / 2) *
+        Math.sin(deltaLng / 2);
+    return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   };
 
   const getPrimaryGeometry = (place: Place): GeoJSON.Geometry | null => {
@@ -332,7 +357,7 @@ function AppContent() {
   };
 
   const getCoordinatesFromGeometry = (
-    geometry: GeoJSON.Geometry
+    geometry: GeoJSON.Geometry,
   ): Coordinate[] => {
     if (geometry.type === "Point") {
       const coords = geometry.coordinates as number[];
@@ -351,8 +376,12 @@ function AppContent() {
         (poly[0] || []).map((coord) => ({
           latitude: coord[1],
           longitude: coord[0],
-        }))
+        })),
       );
+    }
+    if (geometry.type === "LineString") {
+      const line = geometry.coordinates as number[][];
+      return line.map((coord) => ({ latitude: coord[1], longitude: coord[0] }));
     }
     return [];
   };
@@ -376,7 +405,7 @@ function AppContent() {
           setMenuVisible(true);
         }
       },
-    })
+    }),
   ).current;
 
   const rightPanResponder = useRef(
@@ -397,7 +426,7 @@ function AppContent() {
           setSidebarVisible(true);
         }
       },
-    })
+    }),
   ).current;
 
   const confirmLocation = () => {
@@ -468,12 +497,60 @@ function AppContent() {
       setDrawingMode("none");
     } else if (drawingMode === "area") {
       setAreaPoints([...areaPoints, coordinate]);
+    } else if (drawingMode === "line") {
+      setAreaPoints([...areaPoints, coordinate]);
     }
   };
 
   const handleToggleGPS = () => {
     toggleGPSTracking();
   };
+
+  const startLineRecording = () => {
+    if (!gpsTracking) {
+      setGpsTracking(true);
+    }
+    setAreaPoints([]);
+    if (currentLocation) {
+      setAreaPoints([currentLocation]);
+    }
+    setDrawingMode("lineRecord");
+  };
+
+  const stopLineRecording = () => {
+    if (areaPoints.length < 2) {
+      Alert.alert(t("error"), t("trackMinPoints"));
+      setDrawingMode("none");
+      setAreaPoints([]);
+      return;
+    }
+    completeLine();
+  };
+
+  const toggleLineRecording = () => {
+    if (drawingMode === "lineRecord") {
+      stopLineRecording();
+    } else {
+      startLineRecording();
+    }
+  };
+
+  useEffect(() => {
+    if (drawingMode !== "lineRecord" || !currentLocation) {
+      return;
+    }
+
+    setAreaPoints((prev) => {
+      if (prev.length === 0) {
+        return [currentLocation];
+      }
+      const last = prev[prev.length - 1];
+      if (distanceMeters(last, currentLocation) < 5) {
+        return prev;
+      }
+      return [...prev, currentLocation];
+    });
+  }, [drawingMode, currentLocation]);
 
   const completeArea = () => {
     if (areaPoints.length < 3) {
@@ -513,6 +590,42 @@ function AppContent() {
     setCurrentItem(newPlace);
     setModalVisible(true);
     setDrawingMode("none");
+  };
+
+  const completeLine = () => {
+    if (areaPoints.length < 2) {
+      Alert.alert(t("error"), t("trackMinPoints"));
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const newPlace: Place = {
+      id: Date.now().toString(),
+      placeType: "Place_Line",
+      source: {
+        system: "internal",
+        importedAt: now,
+      },
+      attributes: {
+        name: "",
+        notes: "",
+      },
+      geometries: [
+        {
+          id: generateGeometryId(),
+          geometry: toGeoJsonLineString(areaPoints),
+          crs: "EPSG:4326",
+        },
+      ],
+      visible: true,
+      createdAt: now,
+      userJournal: [],
+      media: [],
+    };
+    setCurrentItem(newPlace);
+    setModalVisible(true);
+    setDrawingMode("none");
+    setAreaPoints([]);
   };
 
   const resetSplitState = () => {
@@ -568,7 +681,10 @@ function AppContent() {
         longitudeDelta: currentRegion.longitudeDelta,
       };
       mapRef.current?.animateToRegion(targetRegion, 300);
-    } else if (geometry && item.placeType === "Place_Area") {
+    } else if (
+      geometry &&
+      (item.placeType === "Place_Area" || item.placeType === "Place_Line")
+    ) {
       const coordinates = getCoordinatesFromGeometry(geometry);
       if (coordinates.length > 0) {
         const { width, height } = Dimensions.get("window");
@@ -599,7 +715,7 @@ function AppContent() {
     setRepositionItem(item);
     setDrawingMode("reposition");
     setSidebarVisible(false);
-    if (item.placeType === "Place_Area") {
+    if (item.placeType === "Place_Area" || item.placeType === "Place_Line") {
       setAreaPoints([]);
     }
   };
@@ -648,6 +764,23 @@ function AppContent() {
           ...repositionItem.attributes,
           areaHa: area / 10000,
         },
+      });
+    }
+    if (repositionItem && repositionItem.placeType === "Place_Line") {
+      if (areaPoints.length < 2) {
+        Alert.alert(t("error"), t("trackMinPoints"));
+        return;
+      }
+
+      const newGeometry = {
+        id: generateGeometryId(),
+        geometry: toGeoJsonLineString(areaPoints),
+        crs: "EPSG:4326",
+      };
+
+      updateItem({
+        ...repositionItem,
+        geometries: [newGeometry, ...(repositionItem.geometries || [])],
       });
     }
     setRepositionItem(null);
@@ -768,13 +901,13 @@ function AppContent() {
         bufferPolys.push(buffered.geometry.coordinates as number[][][]);
       } else if (buffered?.geometry?.type === "MultiPolygon") {
         bufferPolys.push(
-          ...((buffered.geometry.coordinates as number[][][][]) || [])
+          ...((buffered.geometry.coordinates as number[][][][]) || []),
         );
       }
 
       const diffResult = polygonClipping.difference(
         [targetPoly] as any,
-        ...(bufferPolys as any)
+        ...(bufferPolys as any),
       );
 
       pieces = (diffResult || [])
@@ -838,14 +971,14 @@ function AppContent() {
 
     const unionWithBuffer = (
       geom: GeoJSON.Geometry,
-      buffers: number[][][][] | null
+      buffers: number[][][][] | null,
     ): GeoJSON.Geometry => {
       if (!buffers || buffers.length === 0) return geom;
       const base = toCoords(geom);
       try {
         const unionResult = polygonClipping.union(
           base as any,
-          ...(buffers as any)
+          ...(buffers as any),
         );
         if (unionResult && unionResult.length > 0) {
           return {
@@ -861,7 +994,7 @@ function AppContent() {
 
     const clipToParent = (
       geom: GeoJSON.Geometry,
-      parentGeom: GeoJSON.Geometry | null
+      parentGeom: GeoJSON.Geometry | null,
     ): GeoJSON.Geometry => {
       if (!parentGeom) return geom;
       const geomCoords = toCoords(geom);
@@ -870,7 +1003,7 @@ function AppContent() {
       try {
         const inter = polygonClipping.intersection(
           geomCoords as any,
-          parentCoords as any
+          parentCoords as any,
         );
         if (inter && inter.length > 0) {
           return {
@@ -886,7 +1019,7 @@ function AppContent() {
 
     const finalGeometry = clipToParent(
       unionWithBuffer(selected.geometry, splitBufferPolys),
-      splitParentGeom
+      splitParentGeom,
     );
 
     if (isAdjusting) {
@@ -971,7 +1104,7 @@ function AppContent() {
         }
         if (piece.geometry.type === "MultiPolygon") {
           const mp = (turf as any).multiPolygon(
-            piece.geometry.coordinates as any
+            piece.geometry.coordinates as any,
           );
           return (turf as any).booleanPointInPolygon(tapPoint, mp);
         }
@@ -993,7 +1126,7 @@ function AppContent() {
         (p) =>
           p.id === id ||
           p.attributes?.parentPlaceId === id ||
-          p.attributes?.splitFromParentId === id
+          p.attributes?.splitFromParentId === id,
       )
       .map((p) => p.id);
 
@@ -1065,7 +1198,7 @@ function AppContent() {
       replaceAllItems(normalized);
       Alert.alert(
         t("success"),
-        t("importedItems", { count: normalized.length })
+        t("importedItems", { count: normalized.length }),
       );
     }
   };
@@ -1076,19 +1209,19 @@ function AppContent() {
 
   const handlePropertyMappingConfirm = (
     nameProperty: string,
-    notesProperty: string
+    notesProperty: string,
   ) => {
     const importedItems = processGeoJSON(
       geoJsonFeatures,
       nameProperty,
       notesProperty,
-      places
+      places,
     );
     if (importedItems) {
       appendItems(importedItems);
       Alert.alert(
         t("success"),
-        t("addedItems", { count: importedItems.length })
+        t("addedItems", { count: importedItems.length }),
       );
     }
     setPropertyMappingVisible(false);
@@ -1143,8 +1276,10 @@ function AppContent() {
           repositionItem?.placeType === "Place_Point"
             ? "point"
             : repositionItem?.placeType === "Place_Area"
-            ? "area"
-            : undefined
+              ? "area"
+              : repositionItem?.placeType === "Place_Line"
+                ? "line"
+                : undefined
         }
         onConfirmLocation={confirmLocation}
         onCompleteReposition={completeReposition}
@@ -1205,6 +1340,9 @@ function AppContent() {
         onSetDrawingMode={setDrawingMode}
         areaPointsCount={areaPoints.length}
         onCompleteArea={completeArea}
+        onCompleteLine={completeLine}
+        onToggleLineRecording={toggleLineRecording}
+        isLineRecording={drawingMode === "lineRecord"}
         onClearDrawing={clearDrawing}
         sidebarVisible={sidebarVisible}
         onToggleSidebar={() => setSidebarVisible(!sidebarVisible)}
