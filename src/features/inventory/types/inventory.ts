@@ -18,6 +18,8 @@ export type DrawingMode =
   | "none"
   | "point"
   | "area"
+  | "line"
+  | "lineRecord"
   | "reposition"
   | "split"
   | "splitAdjust"
@@ -39,7 +41,7 @@ export interface HistoryEntry {
   media: MediaItem[];
 }
 
-export type PlaceType = "Place_Point" | "Place_Area";
+export type PlaceType = "Place_Point" | "Place_Area" | "Place_Line";
 
 export interface PlaceSource {
   system: string;

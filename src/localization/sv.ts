@@ -25,7 +25,11 @@ export const sv: Record<TranslationKeys, string> = {
   satelliteView: "Satellitvy",
   addPoint: "Kartmarkering",
   drawArea: "Rita område",
+  addTrack: "Lägg till spår",
+  recordTrack: "Spela in spår",
+  stopTrackRecording: "Stoppa inspelning",
   completeArea: "Slutför område",
+  completeTrack: "Slutför spår",
   clearDrawing: "Rensa ritning",
   itemsList: "Objektlista",
   about: "Om",
@@ -41,6 +45,7 @@ export const sv: Record<TranslationKeys, string> = {
   // Item Modal
   newPoint: "Ny punkt",
   newArea: "Nytt område",
+  newTrack: "Nytt spår",
   editItem: "Redigera objekt",
   viewItem: "Visa objekt",
   name: "Namn",
@@ -104,11 +109,12 @@ export const sv: Record<TranslationKeys, string> = {
   importFailed: "Import misslyckades: {message}",
   noDataJson: "Ingen data.json hittades i ZIP-filen",
   noValidFeatures:
-    "Inga giltiga Point- eller Polygon-objekt hittades i GeoJSON",
+    "Inga giltiga Point-, LineString- eller Polygon-objekt hittades i GeoJSON",
   invalidGeoJson: "Ogiltig GeoJSON: ingen features-array hittades",
   parseGeoJsonFailed: "Kunde inte tolka GeoJSON: {message}",
   forestandConvertFailed: "Kunde inte konvertera Forestand XML: {details}",
   areaMinPoints: "Ett område behöver minst 3 punkter",
+  trackMinPoints: "Ett spår behöver minst 2 punkter",
   nameRequired: "Ange ett namn",
 
   // About
@@ -126,6 +132,7 @@ export const sv: Record<TranslationKeys, string> = {
   // Map
   confirmLocation: "Bekräfta",
   addAreaPoint: "Lägg till",
+  addTrackPoint: "Lägg till spårpunkt",
   addSplitPoint: "Lägg till delningspunkt",
   setNewPosition: "Sätt ny position",
   completeReposition: "Klar",
@@ -146,6 +153,7 @@ export const sv: Record<TranslationKeys, string> = {
   split: "Dela",
   adjustSplit: "Justera delning",
   colorDynamic: "Dynamisk",
+  trackLength: "Spårlängd",
 
   // Language names
   english: "Engelska",

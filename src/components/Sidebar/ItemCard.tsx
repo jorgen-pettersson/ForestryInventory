@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Place } from "../../features/inventory";
 import { itemCardStyles as styles } from "../../styles";
-import { formatArea, getPlaceAreaHa } from "../../utils";
+import { formatArea, getPlaceAreaHa, getPlaceLengthMeters } from "../../utils";
 import { useLocalization } from "../../localization";
 
 interface ItemCardProps {
@@ -31,7 +31,11 @@ export function ItemCard({
     >
       <View style={styles.itemHeader}>
         <Text style={styles.itemType}>
-          {item.placeType === "Place_Point" ? "📌" : "⬜"}
+          {item.placeType === "Place_Point"
+            ? "📌"
+            : item.placeType === "Place_Line"
+              ? "🛤"
+              : "⬜"}
         </Text>
         <Text style={styles.itemName}>{item.attributes?.name || ""}</Text>
         <TouchableOpacity
@@ -53,6 +57,19 @@ export function ItemCard({
           return (
             <Text style={styles.itemDetail}>
               Area: {formatArea(areaHa * 10000)}
+            </Text>
+          );
+        })()}
+      {item.placeType === "Place_Line" &&
+        (() => {
+          const lengthM = getPlaceLengthMeters(item);
+          if (!lengthM) return null;
+          return (
+            <Text style={styles.itemDetail}>
+              Track:{" "}
+              {lengthM >= 1000
+                ? `${(lengthM / 1000).toFixed(2)} km`
+                : `${Math.round(lengthM)} m`}
             </Text>
           );
         })()}

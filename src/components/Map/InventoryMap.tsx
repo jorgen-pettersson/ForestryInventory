@@ -101,7 +101,7 @@ const distToSegment = (p: Coordinate, v: Coordinate, w: Coordinate): number => {
 // Calculate minimum distance from point to polygon edges
 const distToPolygonEdge = (
   point: Coordinate,
-  polygon: Coordinate[]
+  polygon: Coordinate[],
 ): number => {
   let minDist = Infinity;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -208,7 +208,7 @@ const toLatLng = (coord: number[]): Coordinate => ({
 });
 
 const getPolygonParts = (
-  geometry: GeoJSON.Geometry
+  geometry: GeoJSON.Geometry,
 ): {
   outer: Coordinate[];
   holes?: Coordinate[][];
@@ -226,6 +226,18 @@ const getPolygonParts = (
       const holes = poly.slice(1).map((ring) => ring.map(toLatLng));
       return { outer, holes: holes.length > 0 ? holes : undefined };
     });
+  }
+  return [];
+};
+
+const getLineParts = (geometry: GeoJSON.Geometry): Coordinate[][] => {
+  if (geometry.type === "LineString") {
+    return [(geometry.coordinates as number[][]).map(toLatLng)];
+  }
+  if (geometry.type === "MultiLineString") {
+    return (geometry.coordinates as number[][][]).map((line) =>
+      line.map(toLatLng),
+    );
   }
   return [];
 };
@@ -271,7 +283,7 @@ interface InventoryMapProps {
   items: Place[];
   areaPoints: Coordinate[];
   drawingMode: DrawingMode;
-  repositionType?: "point" | "area";
+  repositionType?: "point" | "area" | "line";
   onConfirmLocation: () => void;
   onCompleteReposition?: () => void;
   onCompleteSplit?: () => void;
@@ -288,7 +300,7 @@ export interface InventoryMapRef {
   fitToCoordinates: (
     coordinates: Coordinate[],
     edgePadding: { top: number; right: number; bottom: number; left: number },
-    animated?: boolean
+    animated?: boolean,
   ) => void;
 }
 
@@ -312,7 +324,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
       disableItemPress,
       mapKey,
     },
-    ref
+    ref,
   ) => {
     const mapRef = useRef<MapView>(null);
 
@@ -328,7 +340,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
           bottom: number;
           left: number;
         },
-        animated = true
+        animated = true,
       ) => {
         mapRef.current?.fitToCoordinates(coordinates, {
           edgePadding,
@@ -475,6 +487,29 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
                 });
               }
 
+              if (item.placeType === "Place_Line") {
+                const lines = getLineParts(geometry);
+                return lines.map((line, index) => {
+                  if (line.length < 2) {
+                    return null;
+                  }
+                  return (
+                    <Polyline
+                      key={`${item.id}-line-${index}`}
+                      coordinates={line}
+                      strokeColor="#2b6cb0"
+                      strokeWidth={4}
+                      tappable
+                      onPress={() => {
+                        if (!disableItemPress) {
+                          onItemPress?.(item);
+                        }
+                      }}
+                    />
+                  );
+                });
+              }
+
               return null;
             })}
 
@@ -490,12 +525,23 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
 
           {areaPoints.length > 0 &&
             drawingMode !== "split" &&
-            drawingMode !== "splitAdjust" && (
+            drawingMode !== "splitAdjust" &&
+            drawingMode !== "line" &&
+            drawingMode !== "lineRecord" && (
               <Polygon
                 coordinates={areaPoints}
                 strokeColor="blue"
                 fillColor="rgba(0,0,255,0.2)"
                 strokeWidth={2}
+              />
+            )}
+
+          {areaPoints.length > 0 &&
+            (drawingMode === "line" || drawingMode === "lineRecord") && (
+              <Polyline
+                coordinates={areaPoints}
+                strokeColor="#2b6cb0"
+                strokeWidth={4}
               />
             )}
         </MapView>
@@ -511,7 +557,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
         />
       </View>
     );
-  }
+  },
 );
 
 const labelStyles = StyleSheet.create({
