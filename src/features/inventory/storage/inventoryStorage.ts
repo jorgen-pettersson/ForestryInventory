@@ -61,7 +61,7 @@ const toGeoJsonPoint = (coordinate: {
 
 const toGeoJsonPolygon = (
   coordinates: { latitude: number; longitude: number }[],
-  holes?: { latitude: number; longitude: number }[][]
+  holes?: { latitude: number; longitude: number }[][],
 ): GeoJSON.Polygon => {
   const outer = coordinates.map((c) => [c.longitude, c.latitude]);
   if (outer.length > 0) {
@@ -116,8 +116,8 @@ const migrateLegacyItem = (item: LegacyInventoryItem): Place => {
     isPoint && item.coordinate
       ? toGeoJsonPoint(item.coordinate)
       : item.coordinates
-      ? toGeoJsonPolygon(item.coordinates, item.holes)
-      : null;
+        ? toGeoJsonPolygon(item.coordinates, item.holes)
+        : null;
 
   return {
     id: item.id,
@@ -160,6 +160,18 @@ export const normalizeInventoryData = (parsed: any): Place[] => {
     const stored = parsed as InventoryStorageV4;
     return stored.places.map((place) => ({
       ...place,
+      attributes:
+        place.placeType === "Place_Line"
+          ? {
+              ...place.attributes,
+              lineType:
+                place.attributes?.lineType === "track" ||
+                place.attributes?.lineType === "stream" ||
+                place.attributes?.lineType === "line"
+                  ? place.attributes.lineType
+                  : "line",
+            }
+          : place.attributes,
       userJournal: (place.userJournal || []).map((entry: HistoryEntry) => ({
         ...entry,
         media: entry.media || [],
@@ -174,6 +186,18 @@ export const normalizeInventoryData = (parsed: any): Place[] => {
     const stored = parsed as InventoryStorageV3;
     return stored.places.map((place) => ({
       ...place,
+      attributes:
+        place.placeType === "Place_Line"
+          ? {
+              ...place.attributes,
+              lineType:
+                place.attributes?.lineType === "track" ||
+                place.attributes?.lineType === "stream" ||
+                place.attributes?.lineType === "line"
+                  ? place.attributes.lineType
+                  : "line",
+            }
+          : place.attributes,
       userJournal: (place.userJournal || []).map((entry: HistoryEntry) => ({
         ...entry,
         media: entry.media || [],
@@ -188,6 +212,18 @@ export const normalizeInventoryData = (parsed: any): Place[] => {
     const stored = parsed as InventoryStorageV2;
     return stored.places.map((place) => ({
       ...place,
+      attributes:
+        place.placeType === "Place_Line"
+          ? {
+              ...place.attributes,
+              lineType:
+                place.attributes?.lineType === "track" ||
+                place.attributes?.lineType === "stream" ||
+                place.attributes?.lineType === "line"
+                  ? place.attributes.lineType
+                  : "line",
+            }
+          : place.attributes,
       userJournal: (place.userJournal || []).map((entry: HistoryEntry) => ({
         ...entry,
         media: entry.media || [],

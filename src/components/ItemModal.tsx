@@ -16,11 +16,22 @@ import {
   Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { Place, HistoryEntry, MediaItem } from "../features/inventory";
+import {
+  Place,
+  HistoryEntry,
+  LineType,
+  MediaItem,
+} from "../features/inventory";
 import { itemModalStyles as styles, mediaStyles } from "../styles";
 import { useMedia } from "../hooks";
 import { MediaGallery } from "./MediaGallery";
-import { formatArea, getPlaceLengthMeters } from "../utils";
+import {
+  formatArea,
+  getLineType,
+  getLineTypeColor,
+  getLineTypeLabelKey,
+  getPlaceLengthMeters,
+} from "../utils";
 import { useLocalization } from "../localization";
 import {
   getAllAttributeOptionsMap,
@@ -49,7 +60,7 @@ interface ItemModalProps {
   visible: boolean;
   item: Partial<Place>;
   mode?: ModalMode;
-  onChangeItem: (item: Partial<Place>) => void;
+  onChangeItem: React.Dispatch<React.SetStateAction<Partial<Place>>>;
   onSave: () => void;
   onCancel: () => void;
   onEdit?: () => void;
@@ -673,6 +684,59 @@ export function ItemModal({
                       : `${Math.round(lengthM)} m`;
                   })()}
                 </Text>
+              </View>
+            )}
+
+            {item.placeType === "Place_Line" && !isViewMode && (
+              <View style={styles.viewField}>
+                <Text style={styles.label}>{t("lineType")}</Text>
+                <View style={styles.pickerWrapper}>
+                  <Picker
+                    key="picker-line-type"
+                    selectedValue={getLineType(item as Place)}
+                    mode="dropdown"
+                    style={{
+                      height: 50,
+                      width: "100%",
+                      color: "#000",
+                    }}
+                    onValueChange={(value) =>
+                      onChangeItem((prev) => ({
+                        ...prev,
+                        attributes: {
+                          ...prev.attributes,
+                          lineType: value as LineType,
+                        },
+                      }))
+                    }
+                  >
+                    <Picker.Item label={t("lineTypeTrack")} value="track" />
+                    <Picker.Item label={t("lineTypeStream")} value="stream" />
+                    <Picker.Item label={t("lineTypeLine")} value="line" />
+                  </Picker>
+                </View>
+              </View>
+            )}
+
+            {item.placeType === "Place_Line" && isViewMode && (
+              <View style={styles.viewField}>
+                <Text style={styles.viewLabel}>{t("lineType")}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 6,
+                      marginRight: 8,
+                      backgroundColor: getLineTypeColor(
+                        getLineType(item as Place),
+                      ),
+                    }}
+                  />
+                  <Text style={styles.viewValue}>
+                    {t(getLineTypeLabelKey(getLineType(item as Place)))}
+                  </Text>
+                </View>
               </View>
             )}
 

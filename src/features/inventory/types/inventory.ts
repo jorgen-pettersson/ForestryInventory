@@ -75,6 +75,8 @@ export interface PopulationData {
   [key: string]: any; // Allow other measurements
 }
 
+export type LineType = "track" | "stream" | "line";
+
 export interface PlaceAttributes {
   name?: string;
   notes?: string;
@@ -85,6 +87,7 @@ export interface PlaceAttributes {
   parentPlaceId?: string;
   splitFromParentId?: string;
   splitLine?: Coordinate[];
+  lineType?: LineType;
   [key: string]: any;
 }
 

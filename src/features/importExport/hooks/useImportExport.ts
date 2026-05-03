@@ -939,6 +939,7 @@ export function useImportExport() {
           attributes: {
             name: name || undefined,
             notes: notes || undefined,
+            lineType: "line",
           },
           geometries: [
             {

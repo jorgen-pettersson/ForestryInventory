@@ -609,6 +609,7 @@ function AppContent() {
       attributes: {
         name: "",
         notes: "",
+        lineType: "track",
       },
       geometries: [
         {

@@ -14,7 +14,7 @@ import {
 } from "../../features/inventory";
 import { mapStyles as styles } from "../../styles";
 import { Crosshair } from "../Crosshair";
-import { getPlaceAreaHa } from "../../utils";
+import { getLineType, getLineTypeColor, getPlaceAreaHa } from "../../utils";
 
 const DEFAULT_AREA_COLOR = "#00FF00"; // Green
 
@@ -489,6 +489,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
 
               if (item.placeType === "Place_Line") {
                 const lines = getLineParts(geometry);
+                const lineColor = getLineTypeColor(getLineType(item));
                 return lines.map((line, index) => {
                   if (line.length < 2) {
                     return null;
@@ -497,7 +498,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
                     <Polyline
                       key={`${item.id}-line-${index}`}
                       coordinates={line}
-                      strokeColor="#2b6cb0"
+                      strokeColor={lineColor}
                       strokeWidth={4}
                       tappable
                       onPress={() => {
@@ -540,7 +541,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
             (drawingMode === "line" || drawingMode === "lineRecord") && (
               <Polyline
                 coordinates={areaPoints}
-                strokeColor="#2b6cb0"
+                strokeColor={getLineTypeColor("track")}
                 strokeWidth={4}
               />
             )}

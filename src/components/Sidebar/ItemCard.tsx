@@ -2,7 +2,14 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Place } from "../../features/inventory";
 import { itemCardStyles as styles } from "../../styles";
-import { formatArea, getPlaceAreaHa, getPlaceLengthMeters } from "../../utils";
+import {
+  formatArea,
+  getLineType,
+  getLineTypeIcon,
+  getLineTypeLabelKey,
+  getPlaceAreaHa,
+  getPlaceLengthMeters,
+} from "../../utils";
 import { useLocalization } from "../../localization";
 
 interface ItemCardProps {
@@ -23,6 +30,7 @@ export function ItemCard({
   onSplit,
 }: ItemCardProps) {
   const { t } = useLocalization();
+  const lineType = item.placeType === "Place_Line" ? getLineType(item) : null;
   return (
     <TouchableOpacity
       style={[styles.itemCard, item.visible === false && styles.itemCardHidden]}
@@ -34,7 +42,7 @@ export function ItemCard({
           {item.placeType === "Place_Point"
             ? "📌"
             : item.placeType === "Place_Line"
-              ? "🛤"
+              ? getLineTypeIcon(lineType || "line")
               : "⬜"}
         </Text>
         <Text style={styles.itemName}>{item.attributes?.name || ""}</Text>
@@ -66,7 +74,7 @@ export function ItemCard({
           if (!lengthM) return null;
           return (
             <Text style={styles.itemDetail}>
-              Track:{" "}
+              {t(getLineTypeLabelKey(lineType || "line"))}:{" "}
               {lengthM >= 1000
                 ? `${(lengthM / 1000).toFixed(2)} km`
                 : `${Math.round(lengthM)} m`}

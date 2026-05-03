@@ -110,7 +110,7 @@ function deepEqual(a: any, b: any): boolean {
 function diffNestedAttributes(
   oldNested: Record<string, any> | undefined,
   newNested: Record<string, any> | undefined,
-  basePath: string
+  basePath: string,
 ): PatchOperation[] {
   const patches: PatchOperation[] = [];
   const oldKeys = new Set(Object.keys(oldNested || {}));
@@ -159,12 +159,19 @@ function diffNestedAttributes(
  */
 function diffAttributes(
   oldAttrs: PlaceAttributes | undefined,
-  newAttrs: PlaceAttributes | undefined
+  newAttrs: PlaceAttributes | undefined,
 ): PatchOperation[] {
   const patches: PatchOperation[] = [];
 
   // List of top-level built-in attributes to diff
-  const builtinKeys = ["name", "notes", "areaHa", "color", "parentPlaceId"];
+  const builtinKeys = [
+    "name",
+    "notes",
+    "areaHa",
+    "color",
+    "parentPlaceId",
+    "lineType",
+  ];
 
   // Diff builtin attributes at top level
   for (const key of builtinKeys) {
@@ -205,7 +212,7 @@ function diffAttributes(
     const sitePatches = diffNestedAttributes(
       oldAttrs?.site,
       newAttrs?.site,
-      "/attributes/site"
+      "/attributes/site",
     );
     patches.push(...sitePatches);
   }
@@ -246,7 +253,7 @@ function diffAttributes(
  */
 function diffGeometries(
   oldGeoms: PlaceGeometry[] | undefined,
-  newGeoms: PlaceGeometry[] | undefined
+  newGeoms: PlaceGeometry[] | undefined,
 ): PatchOperation[] {
   const patches: PatchOperation[] = [];
 
@@ -272,7 +279,7 @@ function diffGeometries(
  */
 function diffMedia(
   oldMedia: MediaItem[] | undefined,
-  newMedia: MediaItem[] | undefined
+  newMedia: MediaItem[] | undefined,
 ): PatchOperation[] {
   const patches: PatchOperation[] = [];
   const oldIds = new Set((oldMedia || []).map((m) => m.id));
@@ -309,7 +316,7 @@ function diffMedia(
  */
 function diffUserJournal(
   oldJournal: HistoryEntry[] | undefined,
-  newJournal: HistoryEntry[] | undefined
+  newJournal: HistoryEntry[] | undefined,
 ): PatchOperation[] {
   const patches: PatchOperation[] = [];
   const oldLength = (oldJournal || []).length;
@@ -340,7 +347,7 @@ function diffUserJournal(
  */
 function diffRelations(
   oldRelations: PlaceRelation[] | undefined,
-  newRelations: PlaceRelation[] | undefined
+  newRelations: PlaceRelation[] | undefined,
 ): PatchOperation[] {
   const patches: PatchOperation[] = [];
   const oldIds = new Set((oldRelations || []).map((r) => r.targetPlaceId));
@@ -361,7 +368,7 @@ function diffRelations(
   for (const rel of oldRelations || []) {
     if (!newIds.has(rel.targetPlaceId)) {
       const index = (oldRelations || []).findIndex(
-        (r) => r.targetPlaceId === rel.targetPlaceId
+        (r) => r.targetPlaceId === rel.targetPlaceId,
       );
       patches.push({
         op: "remove",
@@ -418,7 +425,7 @@ export function inferChangeKind(patch: PatchOperation[]): ChangeKind {
     return "geometry.replaced";
   if (paths.some((p) => p.startsWith("/media"))) {
     const hasAdd = patch.some(
-      (p) => p.op === "add" && p.path.startsWith("/media")
+      (p) => p.op === "add" && p.path.startsWith("/media"),
     );
     return hasAdd ? "media.attached" : "media.removed";
   }
@@ -441,7 +448,7 @@ export function inferChangeKind(patch: PatchOperation[]): ChangeKind {
  */
 export function generateSummary(
   patch: PatchOperation[],
-  kind: ChangeKind
+  kind: ChangeKind,
 ): string {
   switch (kind) {
     case "place.created":
@@ -457,7 +464,7 @@ export function generateSummary(
 
     case "attributes.updated": {
       const attrCount = patch.filter((p) =>
-        p.path.startsWith("/attributes")
+        p.path.startsWith("/attributes"),
       ).length;
       if (attrCount === 1) {
         const first = patch.find((p) => p.path.startsWith("/attributes"));
