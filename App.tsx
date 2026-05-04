@@ -33,6 +33,7 @@ import {
   MenuToggleButton,
   ItemModal,
   Sidebar,
+  SettingsModal,
   InventoryMap,
   AboutModal,
   PropertyMappingModal,
@@ -114,6 +115,7 @@ function AppContent() {
   const [isOnline] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [aboutVisible, setAboutVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [importOptionsVisible, setImportOptionsVisible] = useState(false);
 
   // GeoJSON import state
@@ -1150,7 +1152,7 @@ function AppContent() {
     });
   };
 
-  const handleExport = async (format: "json" | "csv" | "geojson" | "all") => {
+  const handleExport = async (format: "json" | "geojson" | "all") => {
     const result = await exportDataToDefaultLocation(places, {
       format,
       targetUri: defaultExportUri,
@@ -1183,6 +1185,12 @@ function AppContent() {
       setDefaultExportLocation(result.uri, result.name);
       Alert.alert(t("success"), t("defaultExportLocationSet"));
     }
+  };
+
+  const openSettings = () => {
+    setMenuVisible(false);
+    setSidebarVisible(false);
+    setSettingsVisible(true);
   };
 
   const handleImportGeoJson = async () => {
@@ -1386,9 +1394,8 @@ function AppContent() {
         onClearDrawing={clearDrawing}
         sidebarVisible={sidebarVisible}
         onToggleSidebar={() => setSidebarVisible(!sidebarVisible)}
+        onShowSettings={openSettings}
         onShowAbout={() => setAboutVisible(true)}
-        language={language}
-        onSetLanguage={setLanguage}
       />
 
       <Sidebar
@@ -1401,9 +1408,18 @@ function AppContent() {
         onSplit={handleSplit}
         onExport={handleExport}
         hasDefaultExportLocation={!!defaultExportUri}
-        onSetDefaultExportLocation={handleSetDefaultExportLocation}
+        onOpenSettings={openSettings}
         onImport={handleImport}
         onClose={() => setSidebarVisible(false)}
+      />
+
+      <SettingsModal
+        visible={settingsVisible}
+        language={language}
+        hasDefaultExportLocation={!!defaultExportUri}
+        onSetLanguage={setLanguage}
+        onSetDefaultExportLocation={handleSetDefaultExportLocation}
+        onClose={() => setSettingsVisible(false)}
       />
 
       <ItemModal

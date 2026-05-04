@@ -248,76 +248,6 @@ export function useImportExport() {
     };
   };
 
-  // Convert places to CSV format
-  const placesToCSV = (places: Place[]): string => {
-    const headers = [
-      "id",
-      "placeType",
-      "name",
-      "notes",
-      "visible",
-      "createdAt",
-      "latitude",
-      "longitude",
-      "area_sqm",
-      "media_count",
-      "history_count",
-    ];
-
-    const rows = places.map((place) => {
-      const geometry = place.geometries?.[0]?.geometry;
-      let lat: number | string = "";
-      let lng: number | string = "";
-
-      if (geometry?.type === "Point") {
-        const coords = geometry.coordinates as number[];
-        lng = coords[0];
-        lat = coords[1];
-      } else if (geometry?.type === "Polygon") {
-        const rings = geometry.coordinates as number[][][];
-        const first = rings[0]?.[0];
-        if (first) {
-          lng = first[0];
-          lat = first[1];
-        }
-      } else if (geometry?.type === "MultiPolygon") {
-        const polygons = geometry.coordinates as number[][][][];
-        const first = polygons[0]?.[0]?.[0];
-        if (first) {
-          lng = first[0];
-          lat = first[1];
-        }
-      } else if (geometry?.type === "LineString") {
-        const line = geometry.coordinates as number[][];
-        const first = line[0];
-        if (first) {
-          lng = first[0];
-          lat = first[1];
-        }
-      }
-
-      const area = place.attributes?.areaHa
-        ? (place.attributes.areaHa * 10000).toFixed(2)
-        : "";
-
-      return [
-        place.id,
-        place.placeType,
-        `"${(place.attributes?.name || "").replace(/"/g, '""')}"`,
-        `"${(place.attributes?.notes || "").replace(/"/g, '""')}"`,
-        place.visible,
-        place.createdAt,
-        lat,
-        lng,
-        area,
-        place.media?.length || 0,
-        place.userJournal?.length || 0,
-      ].join(",");
-    });
-
-    return [headers.join(","), ...rows].join("\n");
-  };
-
   // Collect all media files from places
   const collectMediaFiles = (places: Place[]): MediaItem[] => {
     const allMedia: MediaItem[] = [];
@@ -362,7 +292,7 @@ export function useImportExport() {
   // Export as ZIP bundle
   const createExportZip = async (
     places: Place[],
-    format: "json" | "csv" | "geojson" | "all" = "all",
+    format: "json" | "geojson" | "all" = "all",
   ): Promise<{ zipPath: string; filename: string }> => {
     await cleanDir(EXPORT_DIR);
     const mediaDir = `${EXPORT_DIR}/media`;
@@ -391,11 +321,6 @@ export function useImportExport() {
       await RNFS.writeFile(`${EXPORT_DIR}/data.json`, jsonData, "utf8");
     }
 
-    if (format === "csv" || format === "all") {
-      const csvData = placesToCSV(places);
-      await RNFS.writeFile(`${EXPORT_DIR}/data.csv`, csvData, "utf8");
-    }
-
     if (format === "geojson" || format === "all") {
       const geoJsonData = JSON.stringify(placesToGeoJSON(places), null, 2);
       await RNFS.writeFile(`${EXPORT_DIR}/data.geojson`, geoJsonData, "utf8");
@@ -414,7 +339,7 @@ export function useImportExport() {
 
   const exportData = async (
     places: Place[],
-    format: "json" | "csv" | "geojson" | "all" = "all",
+    format: "json" | "geojson" | "all" = "all",
   ): Promise<boolean> => {
     try {
       const { zipPath, filename } = await createExportZip(places, format);
@@ -443,7 +368,7 @@ export function useImportExport() {
   const exportDataToDefaultLocation = async (
     places: Place[],
     options?: {
-      format?: "json" | "csv" | "geojson" | "all";
+      format?: "json" | "geojson" | "all";
       targetUri?: string;
       suggestedName?: string;
     },

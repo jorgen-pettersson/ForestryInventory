@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { toolPanelStyles as styles } from "../styles";
 import { DrawingMode } from "../features/inventory";
-import { useLocalization, Language } from "../localization";
+import { useLocalization } from "../localization";
 
 type MapType = "standard" | "satellite" | "hybrid";
 
@@ -28,9 +28,8 @@ interface ToolPanelProps {
   onClearDrawing: () => void;
   sidebarVisible: boolean;
   onToggleSidebar: () => void;
+  onShowSettings: () => void;
   onShowAbout: () => void;
-  language: Language;
-  onSetLanguage: (lang: Language) => void;
 }
 
 export function ToolPanel({
@@ -50,9 +49,8 @@ export function ToolPanel({
   onClearDrawing,
   sidebarVisible,
   onToggleSidebar,
+  onShowSettings,
   onShowAbout,
-  language,
-  onSetLanguage,
 }: ToolPanelProps) {
   const { t } = useLocalization();
 
@@ -63,10 +61,6 @@ export function ToolPanel({
   const handleAction = (action: () => void) => {
     action();
     onClose();
-  };
-
-  const toggleLanguage = () => {
-    onSetLanguage(language === "en" ? "sv" : "en");
   };
 
   return (
@@ -253,12 +247,10 @@ export function ToolPanel({
 
           <TouchableOpacity
             style={styles.toolButton}
-            onPress={() => handleAction(toggleLanguage)}
+            onPress={() => handleAction(onShowSettings)}
           >
-            <Text style={styles.buttonIcon}>🌐</Text>
-            <Text style={styles.buttonText}>
-              {t("language")}: {language === "en" ? t("english") : t("swedish")}
-            </Text>
+            <Text style={styles.buttonIcon}>⚙️</Text>
+            <Text style={styles.buttonText}>{t("settings")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -32,6 +32,8 @@ export const sv: Record<TranslationKeys, string> = {
   completeTrack: "Slutför spår",
   clearDrawing: "Rensa ritning",
   itemsList: "Objektlista",
+  settings: "Inställningar",
+  openSettings: "Öppna inställningar",
   about: "Om",
   language: "Språk",
 
@@ -97,11 +99,13 @@ export const sv: Record<TranslationKeys, string> = {
     "Ställ in en standardplats en gång och exportera sedan med ett klick.",
   setDefaultExportLocation: "Ange standardplats",
   setExportLocation: "Ange exportplats",
-  exportOneClick: "Exportera (1-klick)",
+  exportOneClick: "Exportera",
   exportedToDefaultLocation: "Exporterat till standardplats",
   defaultExportLocationSet: "Standard exportplats sparad",
   defaultExportLocationUnavailable:
     "Standardplatsen är inte tillgänglig. Ange exportplats igen.",
+  defaultExportLocationConfigured: "Standardplats är konfigurerad.",
+  defaultExportLocationNotConfigured: "Ingen standardplats är vald ännu.",
   all: "Alla",
   allFormats: "Alla format",
   jsonOnly: "Endast JSON",

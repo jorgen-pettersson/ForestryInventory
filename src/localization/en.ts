@@ -30,6 +30,8 @@ export const en = {
   completeTrack: "Complete Track",
   clearDrawing: "Clear Drawing",
   itemsList: "Items List",
+  settings: "Settings",
+  openSettings: "Open settings",
   about: "About",
   language: "Language",
 
@@ -95,11 +97,13 @@ export const en = {
     "Set a default location once, then export with one click.",
   setDefaultExportLocation: "Set default location",
   setExportLocation: "Set Export Location",
-  exportOneClick: "Export (1-click)",
+  exportOneClick: "Export",
   exportedToDefaultLocation: "Exported to default location",
   defaultExportLocationSet: "Default export location saved",
   defaultExportLocationUnavailable:
     "Default location unavailable. Set export location again.",
+  defaultExportLocationConfigured: "Default location is configured.",
+  defaultExportLocationNotConfigured: "No default location configured yet.",
   all: "All",
   allFormats: "All formats",
   jsonOnly: "JSON only",

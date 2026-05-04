@@ -20,9 +20,9 @@ interface SidebarProps {
   onView: (item: Place) => void;
   onReposition: (item: Place) => void;
   onSplit: (item: Place) => void;
-  onExport: (format: "json" | "csv" | "geojson" | "all") => void;
+  onExport: (format: "json" | "geojson" | "all") => void;
   hasDefaultExportLocation: boolean;
-  onSetDefaultExportLocation: () => void;
+  onOpenSettings: () => void;
   onImport: () => void;
   onClose: () => void;
 }
@@ -37,7 +37,7 @@ export function Sidebar({
   onSplit,
   onExport,
   hasDefaultExportLocation,
-  onSetDefaultExportLocation,
+  onOpenSettings,
   onImport,
   onClose,
 }: SidebarProps) {
@@ -55,8 +55,8 @@ export function Sidebar({
 
     Alert.alert(t("defaultExportLocation"), t("setDefaultExportLocationHint"), [
       {
-        text: t("setDefaultExportLocation"),
-        onPress: onSetDefaultExportLocation,
+        text: t("openSettings"),
+        onPress: onOpenSettings,
       },
       {
         text: t("cancel"),
@@ -86,12 +86,6 @@ export function Sidebar({
           ))}
         </ScrollView>
         <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.exportButton}
-            onPress={onSetDefaultExportLocation}
-          >
-            <Text style={styles.exportText}>{t("setExportLocation")}</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
             <Text style={styles.exportText}>{t("exportOneClick")}</Text>
           </TouchableOpacity>
