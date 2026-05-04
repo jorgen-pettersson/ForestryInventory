@@ -242,6 +242,21 @@ const getLineParts = (geometry: GeoJSON.Geometry): Coordinate[][] => {
   return [];
 };
 
+const getLineStrokeWidths = (
+  latitudeDelta: number,
+): { core: number; halo: number } => {
+  if (latitudeDelta < 0.005) {
+    return { core: 3, halo: 5 };
+  }
+  if (latitudeDelta < 0.02) {
+    return { core: 4, halo: 7 };
+  }
+  if (latitudeDelta < 0.08) {
+    return { core: 3.5, halo: 6.5 };
+  }
+  return { core: 2.5, halo: 5 };
+};
+
 // Convert hex color to rgba with opacity
 const hexToRgba = (hex: string, opacity: number): string => {
   // Handle color names by returning a default rgba
@@ -327,6 +342,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
     ref,
   ) => {
     const mapRef = useRef<MapView>(null);
+    const lineStroke = getLineStrokeWidths(region.latitudeDelta);
 
     useImperativeHandle(ref, () => ({
       animateToRegion: (targetRegion: Region, duration = 500) => {
@@ -495,18 +511,30 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
                     return null;
                   }
                   return (
-                    <Polyline
-                      key={`${item.id}-line-${index}`}
-                      coordinates={line}
-                      strokeColor={lineColor}
-                      strokeWidth={4}
-                      tappable
-                      onPress={() => {
-                        if (!disableItemPress) {
-                          onItemPress?.(item);
-                        }
-                      }}
-                    />
+                    <React.Fragment key={`${item.id}-line-${index}`}>
+                      <Polyline
+                        coordinates={line}
+                        strokeColor="#ffffff"
+                        strokeWidth={lineStroke.halo}
+                        tappable
+                        onPress={() => {
+                          if (!disableItemPress) {
+                            onItemPress?.(item);
+                          }
+                        }}
+                      />
+                      <Polyline
+                        coordinates={line}
+                        strokeColor={lineColor}
+                        strokeWidth={lineStroke.core}
+                        tappable
+                        onPress={() => {
+                          if (!disableItemPress) {
+                            onItemPress?.(item);
+                          }
+                        }}
+                      />
+                    </React.Fragment>
                   );
                 });
               }
@@ -539,11 +567,18 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
 
           {areaPoints.length > 0 &&
             (drawingMode === "line" || drawingMode === "lineRecord") && (
-              <Polyline
-                coordinates={areaPoints}
-                strokeColor={getLineTypeColor("track")}
-                strokeWidth={4}
-              />
+              <>
+                <Polyline
+                  coordinates={areaPoints}
+                  strokeColor="#ffffff"
+                  strokeWidth={lineStroke.halo}
+                />
+                <Polyline
+                  coordinates={areaPoints}
+                  strokeColor={getLineTypeColor("track")}
+                  strokeWidth={lineStroke.core}
+                />
+              </>
             )}
         </MapView>
 
