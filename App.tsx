@@ -52,8 +52,16 @@ const SWIPE_EDGE_WIDTH = 30;
 const SWIPE_THRESHOLD = 50;
 
 function AppContent() {
-  const { gpsTracking, setGpsTracking, mapType, toggleMapType, isLoaded } =
-    useSettings();
+  const {
+    gpsTracking,
+    setGpsTracking,
+    mapType,
+    toggleMapType,
+    defaultExportUri,
+    defaultExportName,
+    setDefaultExportLocation,
+    isLoaded,
+  } = useSettings();
   const { region, setRegion, toggleGPSTracking, currentLocation } = useLocation(
     {
       gpsTracking,
@@ -74,7 +82,7 @@ function AppContent() {
     appendItems,
   } = useInventory();
   const {
-    exportData,
+    exportDataToDefaultLocation,
     importData,
     parseGeoJSON,
     parseForestandXml,
@@ -1143,7 +1151,38 @@ function AppContent() {
   };
 
   const handleExport = async (format: "json" | "csv" | "geojson" | "all") => {
-    await exportData(places, format);
+    const result = await exportDataToDefaultLocation(places, {
+      format,
+      targetUri: defaultExportUri,
+      suggestedName: defaultExportName,
+    });
+
+    if (result.success && result.uri) {
+      if (
+        result.uri !== defaultExportUri ||
+        result.name !== defaultExportName
+      ) {
+        setDefaultExportLocation(result.uri, result.name);
+      }
+      Alert.alert(t("success"), t("exportedToDefaultLocation"));
+      return;
+    }
+
+    if (defaultExportUri) {
+      Alert.alert(t("exportError"), t("defaultExportLocationUnavailable"));
+    }
+  };
+
+  const handleSetDefaultExportLocation = async () => {
+    const result = await exportDataToDefaultLocation(places, {
+      format: "all",
+      suggestedName: defaultExportName,
+    });
+
+    if (result.success && result.uri) {
+      setDefaultExportLocation(result.uri, result.name);
+      Alert.alert(t("success"), t("defaultExportLocationSet"));
+    }
   };
 
   const handleImportGeoJson = async () => {
@@ -1361,6 +1400,8 @@ function AppContent() {
         onReposition={handleReposition}
         onSplit={handleSplit}
         onExport={handleExport}
+        hasDefaultExportLocation={!!defaultExportUri}
+        onSetDefaultExportLocation={handleSetDefaultExportLocation}
         onImport={handleImport}
         onClose={() => setSidebarVisible(false)}
       />

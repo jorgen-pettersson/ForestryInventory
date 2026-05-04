@@ -90,6 +90,16 @@ export const en = {
   addedItems: "Added {count} items",
   exportFormat: "Export Format",
   chooseExportFormat: "Choose export format",
+  defaultExportLocation: "Default Export Location",
+  setDefaultExportLocationHint:
+    "Set a default location once, then export with one click.",
+  setDefaultExportLocation: "Set default location",
+  setExportLocation: "Set Export Location",
+  exportOneClick: "Export (1-click)",
+  exportedToDefaultLocation: "Exported to default location",
+  defaultExportLocationSet: "Default export location saved",
+  defaultExportLocationUnavailable:
+    "Default location unavailable. Set export location again.",
   all: "All",
   allFormats: "All formats",
   jsonOnly: "JSON only",

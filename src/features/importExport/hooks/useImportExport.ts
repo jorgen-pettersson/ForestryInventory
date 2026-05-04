@@ -4,6 +4,7 @@ import { zip, unzip } from "react-native-zip-archive";
 import Share from "react-native-share";
 import {
   pick,
+  saveDocuments,
   types,
   isErrorWithCode,
   errorCodes,
@@ -359,67 +360,70 @@ export function useImportExport() {
   };
 
   // Export as ZIP bundle
+  const createExportZip = async (
+    places: Place[],
+    format: "json" | "csv" | "geojson" | "all" = "all",
+  ): Promise<{ zipPath: string; filename: string }> => {
+    await cleanDir(EXPORT_DIR);
+    const mediaDir = `${EXPORT_DIR}/media`;
+    await ensureDir(mediaDir);
+
+    const allMedia = collectMediaFiles(places);
+    for (const media of allMedia) {
+      const sourcePath = media.uri.replace("file://", "");
+      const ext = media.type === "video" ? "mp4" : "jpg";
+      const destPath = `${mediaDir}/${media.id}.${ext}`;
+
+      const exists = await RNFS.exists(sourcePath);
+      if (exists) {
+        await RNFS.copyFile(sourcePath, destPath);
+      }
+    }
+
+    const exportPlaces = preparePlacesForExport(places);
+
+    if (format === "json" || format === "all") {
+      const jsonData = JSON.stringify(
+        { version: 4, places: exportPlaces },
+        null,
+        2,
+      );
+      await RNFS.writeFile(`${EXPORT_DIR}/data.json`, jsonData, "utf8");
+    }
+
+    if (format === "csv" || format === "all") {
+      const csvData = placesToCSV(places);
+      await RNFS.writeFile(`${EXPORT_DIR}/data.csv`, csvData, "utf8");
+    }
+
+    if (format === "geojson" || format === "all") {
+      const geoJsonData = JSON.stringify(placesToGeoJSON(places), null, 2);
+      await RNFS.writeFile(`${EXPORT_DIR}/data.geojson`, geoJsonData, "utf8");
+    }
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+    const filename = `forestry_export_${timestamp}.zip`;
+    const zipPath = `${RNFS.CachesDirectoryPath}/${filename}`;
+
+    await zip(EXPORT_DIR, zipPath);
+    return { zipPath, filename };
+  };
+
   const exportData = async (
     places: Place[],
     format: "json" | "csv" | "geojson" | "all" = "all",
   ): Promise<boolean> => {
     try {
-      await cleanDir(EXPORT_DIR);
-      const mediaDir = `${EXPORT_DIR}/media`;
-      await ensureDir(mediaDir);
-
-      // Copy media files
-      const allMedia = collectMediaFiles(places);
-      for (const media of allMedia) {
-        const sourcePath = media.uri.replace("file://", "");
-        const ext = media.type === "video" ? "mp4" : "jpg";
-        const destPath = `${mediaDir}/${media.id}.${ext}`;
-
-        const exists = await RNFS.exists(sourcePath);
-        if (exists) {
-          await RNFS.copyFile(sourcePath, destPath);
-        }
-      }
-
-      // Prepare items with relative media paths
-      const exportPlaces = preparePlacesForExport(places);
-
-      // Write JSON
-      if (format === "json" || format === "all") {
-        const jsonData = JSON.stringify(
-          { version: 4, places: exportPlaces },
-          null,
-          2,
-        );
-        await RNFS.writeFile(`${EXPORT_DIR}/data.json`, jsonData, "utf8");
-      }
-
-      // Write CSV
-      if (format === "csv" || format === "all") {
-        const csvData = placesToCSV(places);
-        await RNFS.writeFile(`${EXPORT_DIR}/data.csv`, csvData, "utf8");
-      }
-
-      // Write GeoJSON
-      if (format === "geojson" || format === "all") {
-        const geoJsonData = JSON.stringify(placesToGeoJSON(places), null, 2);
-        await RNFS.writeFile(`${EXPORT_DIR}/data.geojson`, geoJsonData, "utf8");
-      }
-
-      // Create ZIP
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .slice(0, 19);
-      const zipPath = `${RNFS.CachesDirectoryPath}/forestry_export_${timestamp}.zip`;
-
-      await zip(EXPORT_DIR, zipPath);
+      const { zipPath, filename } = await createExportZip(places, format);
 
       // Share the ZIP file
       await Share.open({
         url: `file://${zipPath}`,
         type: "application/zip",
-        filename: `forestry_export_${timestamp}.zip`,
+        filename,
       });
 
       return true;
@@ -433,6 +437,64 @@ export function useImportExport() {
         t("exportFailed", { message: error.message }),
       );
       return false;
+    }
+  };
+
+  const exportDataToDefaultLocation = async (
+    places: Place[],
+    options?: {
+      format?: "json" | "csv" | "geojson" | "all";
+      targetUri?: string;
+      suggestedName?: string;
+    },
+  ): Promise<{ success: boolean; uri?: string; name?: string }> => {
+    const format = options?.format || "all";
+    try {
+      const { zipPath, filename } = await createExportZip(places, format);
+
+      if (options?.targetUri) {
+        try {
+          await RNFS.copyFile(zipPath, options.targetUri);
+          return {
+            success: true,
+            uri: options.targetUri,
+            name: options.suggestedName || filename,
+          };
+        } catch {
+          // Fall through to picker if direct write fails
+        }
+      }
+
+      const response = await saveDocuments({
+        sourceUris: [`file://${zipPath}`],
+        mimeType: "application/zip",
+        fileName: options?.suggestedName || filename,
+      });
+
+      const saved = response[0];
+      if (saved?.error) {
+        throw new Error(saved.error);
+      }
+
+      return {
+        success: true,
+        uri: saved?.uri,
+        name: saved?.name || options?.suggestedName || filename,
+      };
+    } catch (error: any) {
+      if (
+        isErrorWithCode(error) &&
+        error.code === errorCodes.OPERATION_CANCELED
+      ) {
+        return { success: false };
+      }
+
+      console.error("Default export error:", error);
+      Alert.alert(
+        t("exportError"),
+        t("exportFailed", { message: error?.message || "Unknown error" }),
+      );
+      return { success: false };
     }
   };
 
@@ -1034,6 +1096,7 @@ export function useImportExport() {
 
   return {
     exportData,
+    exportDataToDefaultLocation,
     importData,
     parseGeoJSON,
     parseForestandXml,

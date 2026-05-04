@@ -5,6 +5,8 @@ import { loadSettings, saveSettings } from "../storage/settingsStorage";
 const DEFAULT_SETTINGS: Settings = {
   gpsTracking: false,
   mapType: "standard",
+  defaultExportUri: undefined,
+  defaultExportName: undefined,
 };
 
 export function useSettings() {
@@ -36,12 +38,25 @@ export function useSettings() {
     setMapType(settings.mapType === "standard" ? "satellite" : "standard");
   };
 
+  const setDefaultExportLocation = (uri?: string, name?: string) => {
+    const newSettings = {
+      ...settings,
+      defaultExportUri: uri,
+      defaultExportName: name,
+    };
+    setSettings(newSettings);
+    saveSettings(newSettings);
+  };
+
   return {
     gpsTracking: settings.gpsTracking,
     setGpsTracking,
     mapType: settings.mapType,
     setMapType,
     toggleMapType,
+    defaultExportUri: settings.defaultExportUri,
+    defaultExportName: settings.defaultExportName,
+    setDefaultExportLocation,
     isLoaded,
   };
 }

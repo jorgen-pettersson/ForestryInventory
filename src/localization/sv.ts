@@ -92,6 +92,16 @@ export const sv: Record<TranslationKeys, string> = {
   addedItems: "Lade till {count} objekt",
   exportFormat: "Exportformat",
   chooseExportFormat: "Välj exportformat",
+  defaultExportLocation: "Standard exportplats",
+  setDefaultExportLocationHint:
+    "Ställ in en standardplats en gång och exportera sedan med ett klick.",
+  setDefaultExportLocation: "Ange standardplats",
+  setExportLocation: "Ange exportplats",
+  exportOneClick: "Exportera (1-klick)",
+  exportedToDefaultLocation: "Exporterat till standardplats",
+  defaultExportLocationSet: "Standard exportplats sparad",
+  defaultExportLocationUnavailable:
+    "Standardplatsen är inte tillgänglig. Ange exportplats igen.",
   all: "Alla",
   allFormats: "Alla format",
   jsonOnly: "Endast JSON",

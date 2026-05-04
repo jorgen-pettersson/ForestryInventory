@@ -21,6 +21,8 @@ interface SidebarProps {
   onReposition: (item: Place) => void;
   onSplit: (item: Place) => void;
   onExport: (format: "json" | "csv" | "geojson" | "all") => void;
+  hasDefaultExportLocation: boolean;
+  onSetDefaultExportLocation: () => void;
   onImport: () => void;
   onClose: () => void;
 }
@@ -34,6 +36,8 @@ export function Sidebar({
   onReposition,
   onSplit,
   onExport,
+  hasDefaultExportLocation,
+  onSetDefaultExportLocation,
   onImport,
   onClose,
 }: SidebarProps) {
@@ -44,22 +48,15 @@ export function Sidebar({
   const { t } = useLocalization();
 
   const handleExport = () => {
-    Alert.alert(t("exportFormat"), t("chooseExportFormat"), [
+    if (hasDefaultExportLocation) {
+      onExport("all");
+      return;
+    }
+
+    Alert.alert(t("defaultExportLocation"), t("setDefaultExportLocationHint"), [
       {
-        text: t("allFormats"),
-        onPress: () => onExport("all"),
-      },
-      {
-        text: t("jsonOnly"),
-        onPress: () => onExport("json"),
-      },
-      {
-        text: t("csvOnly"),
-        onPress: () => onExport("csv"),
-      },
-      {
-        text: t("geoJsonOnly"),
-        onPress: () => onExport("geojson"),
+        text: t("setDefaultExportLocation"),
+        onPress: onSetDefaultExportLocation,
       },
       {
         text: t("cancel"),
@@ -89,8 +86,14 @@ export function Sidebar({
           ))}
         </ScrollView>
         <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={onSetDefaultExportLocation}
+          >
+            <Text style={styles.exportText}>{t("setExportLocation")}</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
-            <Text style={styles.exportText}>{t("export")}</Text>
+            <Text style={styles.exportText}>{t("exportOneClick")}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.importButton} onPress={onImport}>
             <Text style={styles.exportText}>{t("import")}</Text>
