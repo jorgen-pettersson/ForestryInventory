@@ -170,7 +170,10 @@ export const en = {
     "Draw the line across the area so it crosses the boundary twice.",
   splitFailedPieces:
     "Split did not produce two areas. Draw the line fully across the area and try again.",
-  splitTapToSelect: "Tap a piece to select it",
+  splitNoAvailableArea:
+    "No remaining free area to split after considering subareas and line barriers.",
+  splitTapToSelect: "Tap one or more pieces to include",
+  splitSelectAtLeastOne: "Select at least one area piece to continue.",
   deleteArea: "Delete Area",
   deleteAreaWithSubareas: "This will also delete its subareas.",
   split: "Split",

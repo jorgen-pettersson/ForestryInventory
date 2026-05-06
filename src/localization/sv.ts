@@ -171,7 +171,10 @@ export const sv: Record<TranslationKeys, string> = {
     "Dra linjen över området så att den korsar gränsen två gånger.",
   splitFailedPieces:
     "Delningen gav inte två ytor. Dra linjen helt över området och försök igen.",
-  splitTapToSelect: "Tryck på en yta för att välja den",
+  splitNoAvailableArea:
+    "Ingen fri yta kvar att dela efter hänsyn till underområden och linjebarriärer.",
+  splitTapToSelect: "Tryck på en eller flera ytor att inkludera",
+  splitSelectAtLeastOne: "Välj minst en yta för att fortsätta.",
   deleteArea: "Ta bort område",
   deleteAreaWithSubareas: "Detta tar också bort underområden.",
   split: "Dela",

@@ -207,6 +207,22 @@ const toLatLng = (coord: number[]): Coordinate => ({
   longitude: coord[0],
 });
 
+const isValidCoordinate = (coord: number[] | undefined): boolean => {
+  return (
+    !!coord &&
+    coord.length >= 2 &&
+    Number.isFinite(coord[0]) &&
+    Number.isFinite(coord[1])
+  );
+};
+
+const toValidLatLngRing = (ring: number[][] | undefined): Coordinate[] => {
+  if (!ring || ring.length === 0) {
+    return [];
+  }
+  return ring.filter(isValidCoordinate).map(toLatLng);
+};
+
 const getPolygonParts = (
   geometry: GeoJSON.Geometry,
 ): {
@@ -215,15 +231,21 @@ const getPolygonParts = (
 }[] => {
   if (geometry.type === "Polygon") {
     const rings = geometry.coordinates as number[][][];
-    const outer = rings[0]?.map(toLatLng) || [];
-    const holes = rings.slice(1).map((ring) => ring.map(toLatLng));
+    const outer = toValidLatLngRing(rings[0]);
+    const holes = rings
+      .slice(1)
+      .map((ring) => toValidLatLngRing(ring))
+      .filter((ring) => ring.length > 2);
     return [{ outer, holes: holes.length > 0 ? holes : undefined }];
   }
   if (geometry.type === "MultiPolygon") {
     const polygons = geometry.coordinates as number[][][][];
     return polygons.map((poly) => {
-      const outer = poly[0]?.map(toLatLng) || [];
-      const holes = poly.slice(1).map((ring) => ring.map(toLatLng));
+      const outer = toValidLatLngRing(poly[0]);
+      const holes = poly
+        .slice(1)
+        .map((ring) => toValidLatLngRing(ring))
+        .filter((ring) => ring.length > 2);
       return { outer, holes: holes.length > 0 ? holes : undefined };
     });
   }
@@ -305,6 +327,7 @@ interface InventoryMapProps {
   onCancelReposition?: () => void;
   onItemPress?: (item: Place) => void;
   onMapPress?: (coord: Coordinate) => void;
+  onSplitPiecePress?: (index: number) => void;
   splitPieces?: { geometry: GeoJSON.Geometry; selected?: boolean }[];
   disableItemPress?: boolean;
   mapKey?: string;
@@ -335,6 +358,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
       onCancelReposition,
       onItemPress,
       onMapPress,
+      onSplitPiecePress,
       splitPieces,
       disableItemPress,
       mapKey,
@@ -343,6 +367,7 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
   ) => {
     const mapRef = useRef<MapView>(null);
     const lineStroke = getLineStrokeWidths(region.latitudeDelta);
+    const isSplitSelectionMode = drawingMode === "splitSelect" && !!splitPieces;
 
     useImperativeHandle(ref, () => ({
       animateToRegion: (targetRegion: Region, duration = 500) => {
@@ -394,18 +419,23 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
                 return null;
               }
 
-              const makeCoords = (coords: number[][]) =>
-                coords.map((c) => ({ latitude: c[1], longitude: c[0] }));
+              const makeCoords = (coords: number[][]) => toValidLatLngRing(coords);
 
               const polygons: Coordinate[][] = [];
               if (piece.geometry.type === "Polygon") {
                 const outer = (piece.geometry.coordinates as number[][][])[0];
-                if (outer) polygons.push(makeCoords(outer));
+                if (outer) {
+                  const valid = makeCoords(outer);
+                  if (valid.length > 2) polygons.push(valid);
+                }
               } else if (piece.geometry.type === "MultiPolygon") {
                 const polys = piece.geometry.coordinates as number[][][][];
                 polys.forEach((poly) => {
                   const outer = poly[0];
-                  if (outer) polygons.push(makeCoords(outer));
+                  if (outer) {
+                    const valid = makeCoords(outer);
+                    if (valid.length > 2) polygons.push(valid);
+                  }
                 });
               }
 
@@ -421,13 +451,16 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
                   strokeColor={stroke}
                   fillColor={fill}
                   strokeWidth={3}
+                  tappable
+                  onPress={() => onSplitPiecePress?.(idx)}
                 />
               ));
             })}
 
-          {items
-            .filter((item) => item.visible !== false)
-            .map((item) => {
+          {!isSplitSelectionMode &&
+            items
+              .filter((item) => item.visible !== false)
+              .map((item) => {
               const geometry = getPrimaryGeometry(item);
               if (!geometry) {
                 return null;
@@ -539,8 +572,8 @@ export const InventoryMap = forwardRef<InventoryMapRef, InventoryMapProps>(
                 });
               }
 
-              return null;
-            })}
+                return null;
+              })}
 
           {areaPoints.length > 0 &&
             !splitPieces &&

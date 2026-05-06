@@ -102,7 +102,7 @@ function AppContent() {
   const [splitPieces, setSplitPieces] = useState<
     { geometry: GeoJSON.Geometry; areaHa: number }[] | null
   >(null);
-  const [selectedSplitIdx, setSelectedSplitIdx] = useState<number | null>(null);
+  const [selectedSplitIndices, setSelectedSplitIndices] = useState<number[]>([]);
   const [splitLinePts, setSplitLinePts] = useState<Coordinate[]>([]);
   const [splitBufferPolys, setSplitBufferPolys] = useState<
     number[][][][] | null
@@ -176,6 +176,26 @@ function AppContent() {
       return null;
     }
     return place.geometries[0].geometry || null;
+  };
+
+  const geometryToClipPolys = (geom: GeoJSON.Geometry): number[][][][] => {
+    if (geom.type === "Polygon") {
+      return [geom.coordinates as number[][][]];
+    }
+    if (geom.type === "MultiPolygon") {
+      return geom.coordinates as number[][][][];
+    }
+    return [];
+  };
+
+  const geometryToLineCoords = (geom: GeoJSON.Geometry): number[][][] => {
+    if (geom.type === "LineString") {
+      return [geom.coordinates as number[][]];
+    }
+    if (geom.type === "MultiLineString") {
+      return geom.coordinates as number[][][];
+    }
+    return [];
   };
 
   const normalizeRing = (ring: number[][]) => {
@@ -644,7 +664,7 @@ function AppContent() {
   const resetSplitState = () => {
     setSplitItem(null);
     setSplitPieces(null);
-    setSelectedSplitIdx(null);
+    setSelectedSplitIndices([]);
     setSplitLinePts([]);
     setSplitBufferPolys(null);
     setSplitParentGeom(null);
@@ -832,16 +852,6 @@ function AppContent() {
       return;
     }
 
-    const geometryToClipPolys = (geom: GeoJSON.Geometry): number[][][][] => {
-      if (geom.type === "Polygon") {
-        return [geom.coordinates as number[][][]];
-      }
-      if (geom.type === "MultiPolygon") {
-        return geom.coordinates as number[][][][];
-      }
-      return [] as any;
-    };
-
     const candidatePolys = geometryToClipPolys(geometry);
     let baseOuter: number[][] | null = null;
     if (candidatePolys.length > 0 && candidatePolys[0].length > 0) {
@@ -887,19 +897,97 @@ function AppContent() {
       return;
     }
 
-    // For MultiPolygon, pick the polygon that the line intersects; otherwise use first
-    let targetPoly = candidatePolys[0];
-    for (const poly of candidatePolys) {
+    // Build split candidates from parent area minus existing subareas and existing lines
+    let availablePolys = [...candidatePolys];
+
+    const existingSubareas = places.filter((p) => {
+      if (p.id === splitItem.id || p.placeType !== "Place_Area") return false;
+      const parentId = p.attributes?.parentPlaceId || p.attributes?.splitFromParentId;
+      return parentId === parentTarget.id;
+    });
+
+    const occupiedSubareaPolys = existingSubareas.flatMap((subarea) => {
+      const subGeom = getPrimaryGeometry(subarea);
+      return subGeom ? geometryToClipPolys(subGeom) : [];
+    });
+
+    if (occupiedSubareaPolys.length > 0) {
+      try {
+        const diffWithSubareas = polygonClipping.difference(
+          availablePolys as any,
+          ...(occupiedSubareaPolys as any),
+        );
+        availablePolys = (diffWithSubareas || []).filter((poly: any) => poly?.length);
+      } catch (err) {
+        console.warn("Subtracting subareas failed", err);
+      }
+    }
+
+    const existingLines = places.filter((p) => p.placeType === "Place_Line");
+    const lineBarrierPolys: number[][][][] = [];
+    for (const linePlace of existingLines) {
+      const lineGeom = getPrimaryGeometry(linePlace);
+      if (!lineGeom) continue;
+      const lineParts = geometryToLineCoords(lineGeom);
+      for (const part of lineParts) {
+        if (part.length < 2) continue;
+        try {
+          const partLineFeature = turf.lineString(part);
+          const intersectsParent = (turf as any).lineIntersect(partLineFeature, polyFeature);
+          if (!intersectsParent || intersectsParent.features.length === 0) {
+            continue;
+          }
+          const bufferedLine = (turf as any).buffer(partLineFeature, 0.00005, {
+            units: "kilometers",
+          });
+          if (bufferedLine?.geometry?.type === "Polygon") {
+            lineBarrierPolys.push(bufferedLine.geometry.coordinates as number[][][]);
+          } else if (bufferedLine?.geometry?.type === "MultiPolygon") {
+            lineBarrierPolys.push(
+              ...((bufferedLine.geometry.coordinates as number[][][][]) || []),
+            );
+          }
+        } catch (err) {
+          console.warn("Line barrier buffer failed", err);
+        }
+      }
+    }
+
+    if (lineBarrierPolys.length > 0 && availablePolys.length > 0) {
+      try {
+        const diffWithLines = polygonClipping.difference(
+          availablePolys as any,
+          ...(lineBarrierPolys as any),
+        );
+        availablePolys = (diffWithLines || []).filter((poly: any) => poly?.length);
+      } catch (err) {
+        console.warn("Subtracting line barriers failed", err);
+      }
+    }
+
+    if (availablePolys.length === 0) {
+      Alert.alert(t("error"), t("splitNoAvailableArea"));
+      return;
+    }
+
+    // Pick all candidate polygons the new split line actually crosses
+    const crossedPolyIndices: number[] = [];
+    for (let i = 0; i < availablePolys.length; i += 1) {
+      const poly = availablePolys[i];
       try {
         const polyGeom = (turf as any).polygon(poly);
         const intersects = (turf as any).lineIntersect(lineFeature, polyGeom);
         if (intersects && intersects.features.length >= 2) {
-          targetPoly = poly;
-          break;
+          crossedPolyIndices.push(i);
         }
-      } catch (err) {
-        // ignore
+      } catch {
+        // ignore broken candidate
       }
+    }
+
+    if (crossedPolyIndices.length === 0) {
+      Alert.alert(t("error"), t("splitNeedTwoBoundaryCrossings"));
+      return;
     }
 
     // Use a thin buffer around the split line and subtract via polygon-clipping
@@ -918,14 +1006,26 @@ function AppContent() {
         );
       }
 
-      const diffResult = polygonClipping.difference(
-        [targetPoly] as any,
-        ...(bufferPolys as any),
-      );
+      const piecePolys: any[] = [];
+      for (const crossedIdx of crossedPolyIndices) {
+        const crossedPoly = availablePolys[crossedIdx];
+        const diffResult = polygonClipping.difference(
+          [crossedPoly] as any,
+          ...(bufferPolys as any),
+        );
+        if (diffResult && diffResult.length > 0) {
+          piecePolys.push(...diffResult.filter((poly: any) => poly?.length));
+        }
+      }
 
-      pieces = (diffResult || [])
-        .filter((poly: any) => poly?.length)
-        .map((poly: any) => (turf as any).polygon(poly as any));
+      // Keep available polygons that are not crossed by the split line as-is.
+      for (let i = 0; i < availablePolys.length; i += 1) {
+        if (!crossedPolyIndices.includes(i)) {
+          piecePolys.push(availablePolys[i]);
+        }
+      }
+
+      pieces = piecePolys.map((poly: any) => (turf as any).polygon(poly as any));
     } catch (err) {
       console.warn("Split failed", err);
     }
@@ -953,33 +1053,54 @@ function AppContent() {
       areaHa: geometryAreaHa(feat.geometry) || 0,
     }));
     setSplitPieces(mappedPieces);
-    setSelectedSplitIdx(null);
+    setSelectedSplitIndices([]);
     setSplitLinePts(areaPoints);
     setSplitBufferPolys(bufferPolys);
-    setSplitParentGeom(getPrimaryGeometry(parentTarget));
+    const parentForSelection =
+      availablePolys.length === 1
+        ? ({ type: "Polygon", coordinates: availablePolys[0] } as GeoJSON.Geometry)
+        : ({
+            type: "MultiPolygon",
+            coordinates: availablePolys as any,
+          } as GeoJSON.Geometry);
+    setSplitParentGeom(parentForSelection);
     setAreaPoints([]);
     setDrawingMode("splitSelect");
   };
 
   const finalizeSplitSelection = () => {
-    if (!splitItem || !splitPieces || selectedSplitIdx === null) {
-      Alert.alert(t("error"), "Select an area to continue.");
+    if (!splitItem || !splitPieces || selectedSplitIndices.length === 0) {
+      Alert.alert(t("error"), t("splitSelectAtLeastOne"));
       return;
     }
 
     const isAdjusting =
       !!splitItem.attributes?.splitLine &&
       !!splitItem.attributes?.splitFromParentId;
-    const selected = splitPieces[selectedSplitIdx];
+    const selected = splitPieces.filter((_, idx) =>
+      selectedSplitIndices.includes(idx),
+    );
     const now = new Date().toISOString();
     setDrawingMode("none");
     setAreaPoints([]);
 
-    const toCoords = (g: GeoJSON.Geometry): number[][][] => {
-      if (g.type === "Polygon") return g.coordinates as number[][][];
-      if (g.type === "MultiPolygon")
-        return (g.coordinates as number[][][][])[0];
-      return [] as any;
+    const toMultiPolygonCoords = (g: GeoJSON.Geometry): number[][][][] => {
+      if (g.type === "Polygon") return [g.coordinates as number[][][]];
+      if (g.type === "MultiPolygon") return g.coordinates as number[][][][];
+      return [];
+    };
+
+    const fromMultiPolygonCoords = (coords: number[][][][]): GeoJSON.Geometry => {
+      if (coords.length === 1) {
+        return {
+          type: "Polygon",
+          coordinates: coords[0] as any,
+        } as GeoJSON.Geometry;
+      }
+      return {
+        type: "MultiPolygon",
+        coordinates: coords as any,
+      } as GeoJSON.Geometry;
     };
 
     const unionWithBuffer = (
@@ -987,17 +1108,14 @@ function AppContent() {
       buffers: number[][][][] | null,
     ): GeoJSON.Geometry => {
       if (!buffers || buffers.length === 0) return geom;
-      const base = toCoords(geom);
+      const base = toMultiPolygonCoords(geom);
       try {
         const unionResult = polygonClipping.union(
           base as any,
           ...(buffers as any),
         );
         if (unionResult && unionResult.length > 0) {
-          return {
-            type: "Polygon",
-            coordinates: unionResult[0] as any,
-          } as GeoJSON.Geometry;
+          return fromMultiPolygonCoords(unionResult as any);
         }
       } catch (err) {
         console.warn("Union with buffer failed", err);
@@ -1010,8 +1128,8 @@ function AppContent() {
       parentGeom: GeoJSON.Geometry | null,
     ): GeoJSON.Geometry => {
       if (!parentGeom) return geom;
-      const geomCoords = toCoords(geom);
-      const parentCoords = toCoords(parentGeom);
+      const geomCoords = toMultiPolygonCoords(geom);
+      const parentCoords = toMultiPolygonCoords(parentGeom);
       if (!geomCoords.length || !parentCoords.length) return geom;
       try {
         const inter = polygonClipping.intersection(
@@ -1019,10 +1137,7 @@ function AppContent() {
           parentCoords as any,
         );
         if (inter && inter.length > 0) {
-          return {
-            type: "Polygon",
-            coordinates: inter[0] as any,
-          } as GeoJSON.Geometry;
+          return fromMultiPolygonCoords(inter as any);
         }
       } catch (err) {
         console.warn("Clip to parent failed", err);
@@ -1030,10 +1145,50 @@ function AppContent() {
       return geom;
     };
 
+    const selectedCoords = selected
+      .map((piece) => toMultiPolygonCoords(piece.geometry))
+      .filter((coords) => coords.length > 0);
+
+    if (selectedCoords.length === 0) {
+      Alert.alert(t("error"), t("splitSelectAtLeastOne"));
+      return;
+    }
+
+    let mergedSelectedGeometry: GeoJSON.Geometry | null = null;
+    try {
+      let unionResult: any = selectedCoords[0] as any;
+      for (let i = 1; i < selectedCoords.length; i += 1) {
+        unionResult = polygonClipping.union(
+          unionResult as any,
+          selectedCoords[i] as any,
+        );
+      }
+      if (unionResult && unionResult.length > 0) {
+        mergedSelectedGeometry = fromMultiPolygonCoords(unionResult as any);
+      }
+    } catch (err) {
+      console.warn("Merging selected pieces failed", err);
+    }
+
+    if (!mergedSelectedGeometry) {
+      Alert.alert(t("error"), t("splitFailedPieces"));
+      return;
+    }
+
     const finalGeometry = clipToParent(
-      unionWithBuffer(selected.geometry, splitBufferPolys),
+      unionWithBuffer(mergedSelectedGeometry, splitBufferPolys),
       splitParentGeom,
     );
+
+    const finalAreaHa = (() => {
+      try {
+        const a = (turf as any).area(finalGeometry as any);
+        if (typeof a === "number") return a / 10000;
+      } catch (err) {
+        console.warn("Final area calc failed", err);
+      }
+      return selected.reduce((sum, piece) => sum + (piece.areaHa || 0), 0);
+    })();
 
     if (isAdjusting) {
       updateItem({
@@ -1047,7 +1202,7 @@ function AppContent() {
         ],
         attributes: {
           ...splitItem.attributes,
-          areaHa: selected.areaHa,
+          areaHa: finalAreaHa,
           splitLine: splitLinePts,
         },
       });
@@ -1066,7 +1221,7 @@ function AppContent() {
           splitFromParentId: splitItem.id,
           splitLine: splitLinePts,
           color: splitItem.attributes?.color,
-          areaHa: selected.areaHa,
+          areaHa: finalAreaHa,
         },
         geometries: [
           {
@@ -1128,8 +1283,23 @@ function AppContent() {
     });
 
     if (hitIndex >= 0) {
-      setSelectedSplitIdx(hitIndex);
+      setSelectedSplitIndices((prev) =>
+        prev.includes(hitIndex)
+          ? prev.filter((idx) => idx !== hitIndex)
+          : [...prev, hitIndex],
+      );
     }
+  };
+
+  const handleSplitPiecePress = (index: number) => {
+    if (drawingMode !== "splitSelect" || !splitPieces) {
+      return;
+    }
+    setSelectedSplitIndices((prev) =>
+      prev.includes(index)
+        ? prev.filter((idx) => idx !== index)
+        : [...prev, index],
+    );
   };
 
   const handleDeleteItem = (id: string) => {
@@ -1298,7 +1468,7 @@ function AppContent() {
   const splitPiecesForMap = splitPieces
     ? splitPieces.map((p, idx) => ({
         geometry: p.geometry,
-        selected: idx === selectedSplitIdx,
+        selected: selectedSplitIndices.includes(idx),
       }))
     : undefined;
 
@@ -1343,6 +1513,7 @@ function AppContent() {
         onCancelReposition={cancelReposition}
         onItemPress={handleView}
         onMapPress={handleSplitMapPress}
+        onSplitPiecePress={handleSplitPiecePress}
         splitPieces={splitPiecesForMap}
         disableItemPress={
           drawingMode === "split" ||
@@ -1354,25 +1525,25 @@ function AppContent() {
 
       {drawingMode === "splitSelect" && splitPieces && (
         <View style={styles.splitSelectBar}>
-          <Text style={styles.splitSelectText}>Tap a piece to select it</Text>
+          <Text style={styles.splitSelectText}>{t("splitTapToSelect")}</Text>
           <View style={styles.splitSelectButtons}>
             <TouchableOpacity
               onPress={cancelSplitSelection}
               style={styles.splitButton}
             >
-              <Text style={styles.splitButtonText}>Cancel</Text>
+              <Text style={styles.splitButtonText}>{t("cancel")}</Text>
             </TouchableOpacity>
             <View style={styles.splitButtonSpacer} />
             <TouchableOpacity
               onPress={finalizeSplitSelection}
-              disabled={selectedSplitIdx === null}
+              disabled={selectedSplitIndices.length === 0}
               style={
-                selectedSplitIdx === null
+                selectedSplitIndices.length === 0
                   ? styles.splitButtonDisabled
                   : styles.splitButton
               }
             >
-              <Text style={styles.splitButtonText}>Confirm</Text>
+              <Text style={styles.splitButtonText}>{t("confirmLocation")}</Text>
             </TouchableOpacity>
           </View>
         </View>
