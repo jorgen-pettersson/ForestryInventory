@@ -15,6 +15,11 @@ import { useLocalization } from "../../localization";
 interface SidebarProps {
   visible: boolean;
   items: Place[];
+  totalCount: number;
+  showPoints: boolean;
+  showLines: boolean;
+  onToggleShowPoints: () => void;
+  onToggleShowLines: () => void;
   onToggleVisibility: (id: string) => void;
   onDelete: (id: string) => void;
   onView: (item: Place) => void;
@@ -30,6 +35,11 @@ interface SidebarProps {
 export function Sidebar({
   visible,
   items,
+  totalCount,
+  showPoints,
+  showLines,
+  onToggleShowPoints,
+  onToggleShowLines,
   onToggleVisibility,
   onDelete,
   onView,
@@ -70,8 +80,40 @@ export function Sidebar({
       <Pressable style={styles.overlay} onPress={onClose} />
       <View style={styles.sidebar}>
         <Text style={styles.sidebarTitle}>
-          {t("itemsCount", { count: items.length })}
+          {t("itemsCount", { count: items.length })} / {totalCount}
         </Text>
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            style={showPoints ? styles.filterButtonActive : styles.filterButton}
+            onPress={onToggleShowPoints}
+          >
+            <Text style={styles.filterIcon}>{showPoints ? "👁" : "👁‍🗨"}</Text>
+            <Text
+              style={
+                showPoints
+                  ? styles.filterButtonTextActive
+                  : styles.filterButtonText
+              }
+            >
+              {showPoints ? t("hidePoints") : t("showPoints")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={showLines ? styles.filterButtonActive : styles.filterButton}
+            onPress={onToggleShowLines}
+          >
+            <Text style={styles.filterIcon}>{showLines ? "👁" : "👁‍🗨"}</Text>
+            <Text
+              style={
+                showLines
+                  ? styles.filterButtonTextActive
+                  : styles.filterButtonText
+              }
+            >
+              {showLines ? t("hideTracks") : t("showTracks")}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <ScrollView style={styles.itemsList}>
           {items.map((item) => (
             <ItemCard

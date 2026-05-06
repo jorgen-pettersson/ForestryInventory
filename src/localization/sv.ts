@@ -34,6 +34,12 @@ export const sv: Record<TranslationKeys, string> = {
   itemsList: "Objektlista",
   settings: "Inställningar",
   openSettings: "Öppna inställningar",
+  points: "Punkter",
+  tracks: "Spår",
+  showPoints: "Visa punkter",
+  hidePoints: "Dölj punkter",
+  showTracks: "Visa spår",
+  hideTracks: "Dölj spår",
   about: "Om",
   language: "Språk",
 

@@ -32,6 +32,12 @@ export const en = {
   itemsList: "Items List",
   settings: "Settings",
   openSettings: "Open settings",
+  points: "Points",
+  tracks: "Tracks",
+  showPoints: "Show points",
+  hidePoints: "Hide points",
+  showTracks: "Show tracks",
+  hideTracks: "Hide tracks",
   about: "About",
   language: "Language",
 

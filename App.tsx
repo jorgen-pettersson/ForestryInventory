@@ -114,6 +114,8 @@ function AppContent() {
   }|sp:${splitPieces ? splitPieces.length : 0}`;
   const [isOnline] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [showPoints, setShowPoints] = useState(true);
+  const [showLines, setShowLines] = useState(true);
   const [aboutVisible, setAboutVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [importOptionsVisible, setImportOptionsVisible] = useState(false);
@@ -1300,6 +1302,12 @@ function AppContent() {
       }))
     : undefined;
 
+  const filteredPlaces = places.filter((place) => {
+    if (place.placeType === "Place_Point") return showPoints;
+    if (place.placeType === "Place_Line") return showLines;
+    return true;
+  });
+
   if (!isLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -1317,7 +1325,7 @@ function AppContent() {
         region={region}
         onRegionChange={handleRegionChange}
         mapType={mapType}
-        items={places}
+        items={filteredPlaces}
         areaPoints={areaPoints}
         drawingMode={drawingMode}
         repositionType={
@@ -1400,7 +1408,12 @@ function AppContent() {
 
       <Sidebar
         visible={sidebarVisible}
-        items={places}
+        items={filteredPlaces}
+        totalCount={places.length}
+        showPoints={showPoints}
+        showLines={showLines}
+        onToggleShowPoints={() => setShowPoints((prev) => !prev)}
+        onToggleShowLines={() => setShowLines((prev) => !prev)}
         onToggleVisibility={toggleItemVisibility}
         onDelete={handleDeleteItem}
         onView={handleView}
