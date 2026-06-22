@@ -7,6 +7,8 @@ const DEFAULT_SETTINGS: Settings = {
   mapType: "standard",
   defaultExportUri: undefined,
   defaultExportName: undefined,
+  showPoints: true,
+  showLines: true,
 };
 
 export function useSettings() {
@@ -48,6 +50,18 @@ export function useSettings() {
     saveSettings(newSettings);
   };
 
+  const setShowPoints = (value: boolean) => {
+    const newSettings = { ...settings, showPoints: value };
+    setSettings(newSettings);
+    saveSettings(newSettings);
+  };
+
+  const setShowLines = (value: boolean) => {
+    const newSettings = { ...settings, showLines: value };
+    setSettings(newSettings);
+    saveSettings(newSettings);
+  };
+
   return {
     gpsTracking: settings.gpsTracking,
     setGpsTracking,
@@ -57,6 +71,10 @@ export function useSettings() {
     defaultExportUri: settings.defaultExportUri,
     defaultExportName: settings.defaultExportName,
     setDefaultExportLocation,
+    showPoints: settings.showPoints,
+    showLines: settings.showLines,
+    setShowPoints,
+    setShowLines,
     isLoaded,
   };
 }

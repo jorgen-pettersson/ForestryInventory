@@ -14,6 +14,7 @@ jest.mock("../src/components", () => ({
   Sidebar: () => null,
   InventoryMap: () => null,
   AboutModal: () => null,
+  SettingsModal: () => null,
   PropertyMappingModal: () => null,
 }));
 

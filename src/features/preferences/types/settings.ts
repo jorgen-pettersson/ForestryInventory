@@ -5,4 +5,6 @@ export interface Settings {
   mapType: MapType;
   defaultExportUri?: string;
   defaultExportName?: string;
+  showPoints: boolean;
+  showLines: boolean;
 }

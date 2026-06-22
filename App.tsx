@@ -61,6 +61,10 @@ function AppContent() {
     defaultExportUri,
     defaultExportName,
     setDefaultExportLocation,
+    showPoints,
+    showLines,
+    setShowPoints,
+    setShowLines,
     isLoaded,
   } = useSettings();
   const { region, setRegion, toggleGPSTracking, currentLocation } = useLocation(
@@ -109,13 +113,11 @@ function AppContent() {
   >(null);
   const [splitParentGeom, setSplitParentGeom] =
     useState<GeoJSON.Geometry | null>(null);
-  const mapKey = `${places.map((p) => p.id).join("|")}|dm:${drawingMode}|ap:${
+  const   mapKey = `${places.map((p) => p.id).join("|")}|dm:${drawingMode}|ap:${
     areaPoints.length
   }|sp:${splitPieces ? splitPieces.length : 0}`;
   const [isOnline] = useState(true);
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [showPoints, setShowPoints] = useState(true);
-  const [showLines, setShowLines] = useState(true);
   const [aboutVisible, setAboutVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [importOptionsVisible, setImportOptionsVisible] = useState(false);
@@ -1412,8 +1414,8 @@ function AppContent() {
         totalCount={places.length}
         showPoints={showPoints}
         showLines={showLines}
-        onToggleShowPoints={() => setShowPoints((prev) => !prev)}
-        onToggleShowLines={() => setShowLines((prev) => !prev)}
+        onToggleShowPoints={() => setShowPoints(!showPoints)}
+        onToggleShowLines={() => setShowLines(!showLines)}
         onToggleVisibility={toggleItemVisibility}
         onDelete={handleDeleteItem}
         onView={handleView}
